@@ -1,4 +1,4 @@
-"use client";import{useEffect,useState}from"react";import{supabase}from"../lib/supabase";
+"use client";import{useEffect,useState}from"react";import { supabase } from "../../lib/supabase";
 export default function Home(){const[r,setR]=useState(null),[games,setG]=useState([]),[p,setP]=useState({}),[email,setE]=useState(""),[msg,setM]=useState("");
 useEffect(()=>load(),[]);async function load(){let s=supabase();let{data:r}=await s.from("rounds").select("*").eq("status","open").order("round_number",{ascending:false}).limit(1).maybeSingle();setR(r);if(r){let{data}=await s.from("round_fixtures").select("fixture_number,fixtures(*)").eq("round_id",r.id).order("fixture_number");setG((data||[]).map(x=>x.fixtures))}}
 async function login(e){e.preventDefault();let{error}=await supabase().auth.signInWithOtp({email,options:{emailRedirectTo:location.origin}});setM(error?.message||"Check your email for the sign-in link.")}
