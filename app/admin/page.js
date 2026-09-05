@@ -1,17 +1,13 @@
-"use client";
+import { createClient } from "@supabase/supabase-js";
 
-import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
+export default async function Admin() {
+  let message = "Checking database...";
 
-export default function Admin() {
-  const [message, setMessage] = useState("Checking database...");
-
-  useEffect(() => {
-    checkDatabase();
-  }, []);
-
-  async function checkDatabase() {
-    const db = supabase();
+  try {
+    const db = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+    );
 
     const { data, error } = await db
       .from("rounds")
@@ -19,12 +15,12 @@ export default function Admin() {
       .limit(5);
 
     if (error) {
-      setMessage("Database error: " + error.message);
+      message = "Database error: " + error.message;
     } else {
-      setMessage(
-        "Database working. Rounds found: " + (data?.length || 0)
-      );
+      message = "Database working. Rounds found: " + (data?.length || 0);
     }
+  } catch (error) {
+    message = "Connection error: " + error.message;
   }
 
   return (
