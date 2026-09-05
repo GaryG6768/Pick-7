@@ -1,5 +1,5 @@
 "use client";
-// Fresh deployment
+
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
@@ -189,4 +189,26 @@ export default function Admin() {
             <div
               key={round.id}
               style={{
-                padding: 
+                padding: 14,
+                marginBottom: 10,
+                border: "1px solid #42627e",
+                borderRadius: 8
+              }}
+            >
+              <strong>
+                Round {round.round_number}
+              </strong>
+
+              <br />
+
+              <span className="muted">
+                Status: {round.status}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+
+    </main>
+  );
+}
