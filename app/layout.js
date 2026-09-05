@@ -12,8 +12,10 @@ export default function Layout({ children }) {
     <>
       <header className="appHeader">
         <div className="logo7">7</div>
+
         <div>
           <div className="brand">PICK 7</div>
+
           <div className="tag">
             Seven matches. One weekly challenge.
           </div>
@@ -21,9 +23,15 @@ export default function Layout({ children }) {
       </header>
 
       <nav className="nav">
+
         <Link href="/">
           ⚽
           <small>Play</small>
+        </Link>
+
+        <Link href="/history">
+          📜
+          <small>History</small>
         </Link>
 
         <Link href="/competition">
@@ -40,6 +48,7 @@ export default function Layout({ children }) {
           ⚙️
           <small>Admin</small>
         </a>
+
       </nav>
 
       {children}
