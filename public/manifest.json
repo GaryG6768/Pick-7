@@ -1,0 +1,17 @@
+{
+  "name": "Pick 7",
+  "short_name": "Pick 7",
+  "description": "Seven matches. One weekly challenge.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#06111e",
+  "theme_color": "#06111e",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
