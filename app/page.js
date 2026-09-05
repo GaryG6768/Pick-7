@@ -12,6 +12,8 @@ export default function Home() {
   const [message, setMessage] = useState("Loading Pick 7...");
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadRound();
@@ -20,7 +22,10 @@ export default function Home() {
 
   async function checkUser() {
     const { data } = await supabase().auth.getUser();
-    setUser(data?.user || null);
+
+    if (data?.user) {
+      setUser(data.user);
+    }
   }
 
   async function loadRound() {
@@ -94,7 +99,42 @@ export default function Home() {
     }
   }
 
+  async function checkSubmitted(currentUser, currentRound) {
+    if (!currentUser || !currentRound) return;
+
+    const { data, error } = await supabase()
+      .from("predictions")
+      .select("fixture_id, predicted_home, predicted_away")
+      .eq("round_id", currentRound.id)
+      .eq("player_id", currentUser.id);
+
+    if (error) return;
+
+    if (data && data.length === 7) {
+      const saved = {};
+
+      data.forEach(p => {
+        saved[p.fixture_id] = {
+          home: p.predicted_home,
+          away: p.predicted_away
+        };
+      });
+
+      setPredictions(saved);
+      setSubmitted(true);
+      setMessage("Your 7 picks are already submitted and locked.");
+    }
+  }
+
+  useEffect(() => {
+    if (user && round) {
+      checkSubmitted(user, round);
+    }
+  }, [user, round]);
+
   function setScore(id, side, value) {
+    if (submitted) return;
+
     setPredictions(current => ({
       ...current,
       [id]: {
@@ -118,7 +158,7 @@ export default function Home() {
     }
 
     setUser(data.user);
-    setMessage("You are signed in. Enter your 7 predictions.");
+    setMessage("You are signed in.");
   }
 
   async function createAccount() {
@@ -137,23 +177,24 @@ export default function Home() {
       return;
     }
 
-    if (data.user && data.session) {
+    if (data.user) {
       setUser(data.user);
       setMessage("Account created. You can now enter your 7 predictions.");
-    } else {
-      setMessage(
-        "Account created. Check your email to confirm your account, then sign in."
-      );
     }
   }
 
   async function signOut() {
     await supabase().auth.signOut();
+
     setUser(null);
+    setSubmitted(false);
+    setPredictions({});
     setMessage("You have been signed out.");
   }
 
   async function submit() {
+    if (submitting || submitted) return;
+
     if (!user) {
       setMessage("Please sign in before submitting your picks.");
       return;
@@ -180,6 +221,9 @@ export default function Home() {
       return;
     }
 
+    setSubmitting(true);
+    setMessage("Submitting your 7 picks...");
+
     const rows = games.map(game => ({
       round_id: round.id,
       fixture_id: game.id,
@@ -194,11 +238,20 @@ export default function Home() {
       .insert(rows);
 
     if (error) {
-      setMessage("Could not submit picks: " + error.message);
+      if (error.code === "23505") {
+        setSubmitted(true);
+        setMessage("Your 7 picks are already submitted and locked.");
+      } else {
+        setMessage("Could not submit picks: " + error.message);
+      }
+
+      setSubmitting(false);
       return;
     }
 
+    setSubmitted(true);
     setMessage("Your 7 picks have been submitted and locked.");
+    setSubmitting(false);
   }
 
   return (
@@ -238,6 +291,7 @@ export default function Home() {
                   type="number"
                   min="0"
                   inputMode="numeric"
+                  disabled={submitted}
                   value={predictions[game.id]?.home ?? ""}
                   onChange={e =>
                     setScore(game.id, "home", e.target.value)
@@ -251,6 +305,7 @@ export default function Home() {
                   type="number"
                   min="0"
                   inputMode="numeric"
+                  disabled={submitted}
                   value={predictions[game.id]?.away ?? ""}
                   onChange={e =>
                     setScore(game.id, "away", e.target.value)
@@ -269,14 +324,24 @@ export default function Home() {
             <button
               className="btn"
               onClick={submit}
-              disabled={!user}
+              disabled={!user || submitted || submitting}
             >
-              SUBMIT & LOCK MY PICKS
+              {submitted
+                ? "PICKS SUBMITTED & LOCKED"
+                : submitting
+                ? "SUBMITTING..."
+                : "SUBMIT & LOCK MY PICKS"}
             </button>
 
             {!user && (
               <p className="muted">
                 Please create an account or sign in below before submitting.
+              </p>
+            )}
+
+            {submitted && (
+              <p className="muted">
+                Your predictions are locked and cannot be changed.
               </p>
             )}
           </>
