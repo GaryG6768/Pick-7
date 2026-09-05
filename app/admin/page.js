@@ -4,34 +4,80 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 export default function Admin() {
+  const [competitions, setCompetitions] = useState([]);
   const [rounds, setRounds] = useState([]);
+  const [selectedCompetition, setSelectedCompetition] = useState("");
+  const [competitionName, setCompetitionName] = useState("");
   const [message, setMessage] = useState("Loading...");
-  const [roundNumber, setRoundNumber] = useState("");
 
-  async function loadRounds() {
-    setMessage("Loading rounds...");
+  async function loadData() {
+    setMessage("Loading...");
 
-    const { data, error } = await supabase()
+    const { data: comps, error: compError } = await supabase()
+      .from("competitions")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (compError) {
+      setMessage("Database error: " + compError.message);
+      return;
+    }
+
+    const { data: roundData, error: roundError } = await supabase()
       .from("rounds")
       .select("*")
       .order("round_number", { ascending: false });
 
-    if (error) {
-      setMessage("Database error: " + error.message);
+    if (roundError) {
+      setMessage("Database error: " + roundError.message);
       return;
     }
 
-    setRounds(data || []);
+    setCompetitions(comps || []);
+    setRounds(roundData || []);
+
+    if (!selectedCompetition && comps?.length) {
+      setSelectedCompetition(comps[0].id);
+    }
+
     setMessage("");
   }
 
   useEffect(() => {
-    loadRounds();
+    loadData();
   }, []);
 
+  async function createCompetition() {
+    if (!competitionName.trim()) {
+      setMessage("Enter a competition name.");
+      return;
+    }
+
+    setMessage("Creating competition...");
+
+    const { data, error } = await supabase()
+      .from("competitions")
+      .insert({
+        name: competitionName.trim(),
+        rounds_total: 5
+      })
+      .select()
+      .single();
+
+    if (error) {
+      setMessage("Could not create competition: " + error.message);
+      return;
+    }
+
+    setCompetitionName("");
+    setSelectedCompetition(data.id);
+    setMessage("Competition created successfully.");
+    loadData();
+  }
+
   async function createRound() {
-    if (!roundNumber) {
-      setMessage("Enter a round number.");
+    if (!selectedCompetition) {
+      setMessage("Select a competition first.");
       return;
     }
 
@@ -39,7 +85,9 @@ export default function Admin() {
 
     const { error } = await supabase().rpc(
       "create_pick7_round",
-      { p_round_number: Number(roundNumber) }
+      {
+        p_competition_id: selectedCompetition
+      }
     );
 
     if (error) {
@@ -48,25 +96,27 @@ export default function Admin() {
     }
 
     setMessage("Round created successfully.");
-    setRoundNumber("");
-    loadRounds();
+    loadData();
   }
 
   return (
     <main className="wrap">
+
       <div className="card">
         <div className="muted">PICK 7 ADMIN</div>
         <h2>Admin Dashboard</h2>
 
-        <p>Create and manage Pick 7 rounds.</p>
+        <p>Create competitions and manage Pick 7 rounds.</p>
+      </div>
 
-        <h3>Create New Round</h3>
+      <div className="card">
+        <h3>1. Create Competition</h3>
 
         <input
-          type="number"
-          placeholder="Round number"
-          value={roundNumber}
-          onChange={(e) => setRoundNumber(e.target.value)}
+          type="text"
+          placeholder="Competition name"
+          value={competitionName}
+          onChange={(e) => setCompetitionName(e.target.value)}
           style={{
             width: "100%",
             padding: 12,
@@ -78,8 +128,46 @@ export default function Admin() {
           }}
         />
 
-        <button className="btn" onClick={createRound}>
-          CREATE ROUND
+        <button className="btn" onClick={createCompetition}>
+          CREATE 5-ROUND COMPETITION
+        </button>
+      </div>
+
+      <div className="card">
+        <h3>2. Select Competition</h3>
+
+        {competitions.length === 0 ? (
+          <p className="muted">
+            No competitions created yet.
+          </p>
+        ) : (
+          <select
+            value={selectedCompetition}
+            onChange={(e) => setSelectedCompetition(e.target.value)}
+            style={{
+              width: "100%",
+              padding: 12,
+              background: "#07111f",
+              color: "white",
+              border: "1px solid #42627e",
+              borderRadius: 8,
+              marginBottom: 12
+            }}
+          >
+            {competitions.map((competition) => (
+              <option key={competition.id} value={competition.id}>
+                {competition.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        <button
+          className="btn"
+          onClick={createRound}
+          disabled={!selectedCompetition}
+        >
+          CREATE NEXT ROUND
         </button>
 
         {message && (
@@ -93,27 +181,12 @@ export default function Admin() {
         <h3>Existing Rounds</h3>
 
         {rounds.length === 0 ? (
-          <p className="muted">No rounds have been created yet.</p>
+          <p className="muted">
+            No rounds have been created yet.
+          </p>
         ) : (
           rounds.map((round) => (
             <div
               key={round.id}
               style={{
-                padding: 14,
-                marginBottom: 10,
-                border: "1px solid #42627e",
-                borderRadius: 8
-              }}
-            >
-              <strong>Round {round.round_number}</strong>
-              <br />
-              <span className="muted">
-                Status: {round.status}
-              </span>
-            </div>
-          ))
-        )}
-      </div>
-    </main>
-  );
-}
+                padding: 
