@@ -7,13 +7,21 @@ export default function Home() {
   const [round, setRound] = useState(null);
   const [games, setGames] = useState([]);
   const [predictions, setPredictions] = useState({});
-  const [message, setMessage] = useState("Loading Pick 7...");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("Loading Pick 7...");
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     loadRound();
+    checkUser();
   }, []);
+
+  async function checkUser() {
+    const { data } = await supabase().auth.getUser();
+    setUser(data?.user || null);
+  }
 
   async function loadRound() {
     try {
@@ -96,33 +104,69 @@ export default function Home() {
     }));
   }
 
-  async function login(event) {
+  async function signIn(event) {
     event.preventDefault();
 
-    const { error } = await supabase().auth.signInWithOtp({
+    const { data, error } = await supabase().auth.signInWithPassword({
       email: email.trim(),
-      options: {
-        emailRedirectTo: window.location.origin
-      }
+      password
     });
 
-    setMessage(
-      error
-        ? "Sign-in failed: " + error.message
-        : "Check your email for the sign-in link."
-    );
+    if (error) {
+      setMessage("Sign-in failed: " + error.message);
+      return;
+    }
+
+    setUser(data.user);
+    setMessage("You are signed in. Enter your 7 predictions.");
+  }
+
+  async function createAccount() {
+    if (!email || !password) {
+      setMessage("Enter your email and password first.");
+      return;
+    }
+
+    const { data, error } = await supabase().auth.signUp({
+      email: email.trim(),
+      password
+    });
+
+    if (error) {
+      setMessage("Could not create account: " + error.message);
+      return;
+    }
+
+    if (data.user && data.session) {
+      setUser(data.user);
+      setMessage("Account created. You can now enter your 7 predictions.");
+    } else {
+      setMessage(
+        "Account created. Check your email to confirm your account, then sign in."
+      );
+    }
+  }
+
+  async function signOut() {
+    await supabase().auth.signOut();
+    setUser(null);
+    setMessage("You have been signed out.");
   }
 
   async function submit() {
-    const { data: { user } } = await supabase().auth.getUser();
-
     if (!user) {
       setMessage("Please sign in before submitting your picks.");
       return;
     }
 
+    if (!round || games.length !== 7) {
+      setMessage("There is no valid Pick 7 round available.");
+      return;
+    }
+
     const incomplete = games.some(game => {
       const p = predictions[game.id];
+
       return (
         p?.home === undefined ||
         p?.away === undefined ||
@@ -163,9 +207,7 @@ export default function Home() {
       <div className="card">
 
         <div className="muted">
-          {round
-            ? `ROUND ${round.round_number} • OPEN`
-            : "PICK 7"}
+          {round ? `ROUND ${round.round_number} • OPEN` : "PICK 7"}
         </div>
 
         <h2>
@@ -227,9 +269,16 @@ export default function Home() {
             <button
               className="btn"
               onClick={submit}
+              disabled={!user}
             >
               SUBMIT & LOCK MY PICKS
             </button>
+
+            {!user && (
+              <p className="muted">
+                Please create an account or sign in below before submitting.
+              </p>
+            )}
           </>
         )}
 
@@ -247,35 +296,80 @@ export default function Home() {
 
         <h3>Player Sign-in</h3>
 
-        <p className="muted">
-          Enter your email to receive your secure sign-in link.
+        {user ? (
+          <>
+            <p className="muted">
+              Signed in as {user.email}
+            </p>
+
+            <button className="btn" onClick={signOut}>
+              SIGN OUT
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="muted">
+              Sign in with your email and password.
+            </p>
+
+            <form onSubmit={signIn}>
+
+              <input
+                style={{
+                  width: "100%",
+                  padding: 12,
+                  background: "#07111f",
+                  border: "1px solid #42627e",
+                  borderRadius: 8
+                }}
+                type="email"
+                placeholder="Email address"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+              />
+
+              <br />
+              <br />
+
+              <input
+                style={{
+                  width: "100%",
+                  padding: 12,
+                  background: "#07111f",
+                  border: "1px solid #42627e",
+                  borderRadius: 8
+                }}
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+              />
+
+              <br />
+              <br />
+
+              <button className="btn" type="submit">
+                SIGN IN
+              </button>
+
+            </form>
+
+            <br />
+
+            <button
+              className="btn"
+              onClick={createAccount}
+            >
+              CREATE PLAYER ACCOUNT
+            </button>
+          </>
+        )}
+
+        <p className="notice">
+          {message}
         </p>
-
-        <form onSubmit={login}>
-
-          <input
-            style={{
-              width: "100%",
-              padding: 12,
-              background: "#07111f",
-              border: "1px solid #42627e",
-              borderRadius: 8
-            }}
-            type="email"
-            placeholder="Email address"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
-
-          <br />
-          <br />
-
-          <button className="btn" type="submit">
-            SEND SIGN-IN LINK
-          </button>
-
-        </form>
 
       </div>
 
