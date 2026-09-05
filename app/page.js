@@ -1,6 +1,284 @@
-"use client";import{useEffect,useState}from"react";import{supabase}from"../lib/supabase";
-export default function Home(){const[r,setR]=useState(null),[games,setG]=useState([]),[p,setP]=useState({}),[email,setE]=useState(""),[msg,setM]=useState("");
-useEffect(()=>load(),[]);async function load(){let s=supabase();let{data:r}=await s.from("rounds").select("*").eq("status","open").order("round_number",{ascending:false}).limit(1).maybeSingle();setR(r);if(r){let{data}=await s.from("round_fixtures").select("fixture_number,fixtures(*)").eq("round_id",r.id).order("fixture_number");setG((data||[]).map(x=>x.fixtures))}}
-async function login(e){e.preventDefault();let{error}=await supabase().auth.signInWithOtp({email,options:{emailRedirectTo:location.origin}});setM(error?.message||"Check your email for the sign-in link.")}
-async function submit(){let{data:{user}}=await supabase().auth.getUser();if(!user){setM("Please sign in first.");return}if(games.some(g=>p[g.id]?.h===undefined||p[g.id]?.a===undefined)){setM("Enter all 7 scores.");return}for(let g of games){let x=p[g.id];let{error}=await supabase().from("predictions").insert({round_id:r.id,fixture_id:g.id,player_id:user.id,predicted_home:x.h,predicted_away:x.a,submitted_at:new Date().toISOString()});if(error){setM(error.message);return}}setM("Predictions submitted and locked.")}
-return <main className="wrap"><div className="card"><div className="muted">{r?`ROUND ${r.round_number} • OPEN`:"NO ROUND OPEN"}</div><h2>{r?"Make your 7 picks":"Pick 7"}</h2>{r?games.map(g=><div className="fixture" key={g.id}><div className="team">{g.home_team}</div><input className="score" type="number" min="0" onChange={e=>setP(q=>({...q,[g.id]:{...(q[g.id]||{}),h:+e.target.value}}))}/><div>-</div><input className="score" type="number" min="0" onChange={e=>setP(q=>({...q,[g.id]:{...(q[g.id]||{}),a:+e.target.value}}))}/><div className="away">{g.away_team}</div></div>):<p className="muted">An administrator needs to create the next round.</p>}{r&&<><br/><button className="btn" onClick={submit}>SUBMIT PICKS</button></>}{msg&&<div className="notice">{msg}</div>}</div><div className="card"><h3>Player sign-in</h3><form onSubmit={login}><input style={{width:"100%",padding:12,background:"#07111f",border:"1px solid #42627e",borderRadius:8}} type="email" placeholder="Email address" value={email} onChange={e=>setE(e.target.value)} required/><br/><br/><button className="btn">SEND SIGN-IN LINK</button></form></div></main>}
+"use client";
+
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
+
+export default function Home() {
+  const [round, setRound] = useState(null);
+  const [games, setGames] = useState([]);
+  const [predictions, setPredictions] = useState({});
+  const [message, setMessage] = useState("Loading Pick 7...");
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadRound();
+  }, []);
+
+  async function loadRound() {
+    try {
+      setLoading(true);
+
+      const db = supabase();
+
+      const { data: roundData, error: roundError } = await db
+        .from("rounds")
+        .select("id, round_number, status")
+        .eq("status", "open")
+        .order("round_number", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (roundError) throw roundError;
+
+      if (!roundData) {
+        setMessage("No round is currently open.");
+        return;
+      }
+
+      const { data: links, error: linksError } = await db
+        .from("round_fixtures")
+        .select("fixture_number, fixture_id")
+        .eq("round_id", roundData.id)
+        .order("fixture_number", { ascending: true });
+
+      if (linksError) throw linksError;
+
+      const fixtureIds = (links || [])
+        .map(x => x.fixture_id)
+        .filter(Boolean);
+
+      if (fixtureIds.length !== 7) {
+        throw new Error(
+          `This round contains ${fixtureIds.length} fixtures instead of 7.`
+        );
+      }
+
+      const { data: fixtures, error: fixtureError } = await db
+        .from("fixtures")
+        .select("id, home_team, away_team, kickoff")
+        .in("id", fixtureIds);
+
+      if (fixtureError) throw fixtureError;
+
+      const byId = Object.fromEntries(
+        (fixtures || []).map(f => [f.id, f])
+      );
+
+      const orderedGames = (links || [])
+        .map(x => byId[x.fixture_id])
+        .filter(Boolean);
+
+      if (orderedGames.length !== 7) {
+        throw new Error("The 7 selected fixtures could not be loaded.");
+      }
+
+      setRound(roundData);
+      setGames(orderedGames);
+      setMessage("");
+    } catch (error) {
+      setMessage(
+        "Unable to load Pick 7: " +
+        (error?.message || "Unknown error")
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function setScore(id, side, value) {
+    setPredictions(current => ({
+      ...current,
+      [id]: {
+        ...(current[id] || {}),
+        [side]: value === "" ? "" : Number(value)
+      }
+    }));
+  }
+
+  async function login(event) {
+    event.preventDefault();
+
+    const { error } = await supabase().auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        emailRedirectTo: window.location.origin
+      }
+    });
+
+    setMessage(
+      error
+        ? "Sign-in failed: " + error.message
+        : "Check your email for the sign-in link."
+    );
+  }
+
+  async function submit() {
+    const { data: { user } } = await supabase().auth.getUser();
+
+    if (!user) {
+      setMessage("Please sign in before submitting your picks.");
+      return;
+    }
+
+    const incomplete = games.some(game => {
+      const p = predictions[game.id];
+      return (
+        p?.home === undefined ||
+        p?.away === undefined ||
+        p?.home === "" ||
+        p?.away === ""
+      );
+    });
+
+    if (incomplete) {
+      setMessage("Please enter all 7 scores.");
+      return;
+    }
+
+    const rows = games.map(game => ({
+      round_id: round.id,
+      fixture_id: game.id,
+      player_id: user.id,
+      predicted_home: predictions[game.id].home,
+      predicted_away: predictions[game.id].away,
+      submitted_at: new Date().toISOString()
+    }));
+
+    const { error } = await supabase()
+      .from("predictions")
+      .insert(rows);
+
+    if (error) {
+      setMessage("Could not submit picks: " + error.message);
+      return;
+    }
+
+    setMessage("Your 7 picks have been submitted and locked.");
+  }
+
+  return (
+    <main className="wrap">
+
+      <div className="card">
+
+        <div className="muted">
+          {round
+            ? `ROUND ${round.round_number} • OPEN`
+            : "PICK 7"}
+        </div>
+
+        <h2>
+          {round ? "Make Your 7 Picks" : "Pick 7"}
+        </h2>
+
+        {loading && (
+          <p className="muted">
+            Loading the 7 selected fixtures...
+          </p>
+        )}
+
+        {!loading && round && games.length === 7 && (
+          <>
+            <p className="muted">
+              Predict the exact score for every match.
+            </p>
+
+            {games.map((game, index) => (
+              <div className="fixture" key={game.id}>
+
+                <div className="team">
+                  {index + 1}. {game.home_team}
+                </div>
+
+                <input
+                  className="score"
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={predictions[game.id]?.home ?? ""}
+                  onChange={e =>
+                    setScore(game.id, "home", e.target.value)
+                  }
+                />
+
+                <div>-</div>
+
+                <input
+                  className="score"
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={predictions[game.id]?.away ?? ""}
+                  onChange={e =>
+                    setScore(game.id, "away", e.target.value)
+                  }
+                />
+
+                <div className="away">
+                  {game.away_team}
+                </div>
+
+              </div>
+            ))}
+
+            <br />
+
+            <button
+              className="btn"
+              onClick={submit}
+            >
+              SUBMIT & LOCK MY PICKS
+            </button>
+          </>
+        )}
+
+        {!loading && !round && (
+          <p className="muted">{message}</p>
+        )}
+
+        {!loading && round && games.length !== 7 && (
+          <p className="notice">{message}</p>
+        )}
+
+      </div>
+
+      <div className="card">
+
+        <h3>Player Sign-in</h3>
+
+        <p className="muted">
+          Enter your email to receive your secure sign-in link.
+        </p>
+
+        <form onSubmit={login}>
+
+          <input
+            style={{
+              width: "100%",
+              padding: 12,
+              background: "#07111f",
+              border: "1px solid #42627e",
+              borderRadius: 8
+            }}
+            type="email"
+            placeholder="Email address"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+          />
+
+          <br />
+          <br />
+
+          <button className="btn" type="submit">
+            SEND SIGN-IN LINK
+          </button>
+
+        </form>
+
+      </div>
+
+    </main>
+  );
+}
