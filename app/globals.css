@@ -57,7 +57,7 @@ button,input,select{font:inherit}
   top:76px;
   z-index:29;
   display:grid;
-  grid-template-columns:repeat(4,1fr);
+  grid-template-columns:repeat(5,1fr);
   gap:5px;
   padding:7px 9px;
   background:rgba(7,20,34,.97);
@@ -220,7 +220,7 @@ h2{
 
   .fixture{
     grid-template-columns:minmax(0,1fr) 44px 8px 44px minmax(0,1fr);
-    gap:5px
+    gap:4px
   }
 
   .score{
