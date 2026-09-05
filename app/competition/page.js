@@ -11,10 +11,13 @@ export default function CompetitionPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
-  useEffect(() => { loadCompetition(); }, []);
+  useEffect(() => {
+    loadCompetition();
+  }, []);
 
   async function loadCompetition() {
     setLoading(true);
+
     const db = supabase();
 
     const { data: comp, error: compError } = await db
@@ -72,7 +75,9 @@ export default function CompetitionPage() {
       return;
     }
 
-    const playerIds = [...new Set((scores || []).map(s => s.player_id))];
+    const playerIds = [
+      ...new Set((scores || []).map(s => s.player_id))
+    ];
 
     let profiles = [];
 
@@ -92,7 +97,10 @@ export default function CompetitionPage() {
     }
 
     const names = Object.fromEntries(
-      profiles.map(p => [p.id, p.display_name || "Player"])
+      profiles.map(p => [
+        p.id,
+        p.display_name || "Player"
+      ])
     );
 
     const totals = {};
@@ -129,16 +137,47 @@ export default function CompetitionPage() {
     <main className="wrap">
 
       <div className="card">
-        <div className="muted">5 ROUND COMPETITION</div>
+
+        <div className="muted">
+          5 ROUND COMPETITION
+        </div>
 
         <h2>
           {competition?.name || "Pick 7 Competition"}
         </h2>
 
         <p className="muted">
-          Weekly points: 1st 7 • 2nd 6 • 3rd 5 • 4th 4 • 5th 3 • 6th 2 • 7th 1
-          Ties share the points for the positions involved.
+          <strong>Competition points</strong>
+          <br /><br />
+
+          You get <strong>1 point more</strong> than the
+          player finishing below you.
+          <br /><br />
+
+          The winner receives competition points equal
+          to the <strong>number of players who entered
+          that round</strong>.
+          <br /><br />
+
+          <strong>Example: 20 players</strong>
+          <br />
+          1st = 20 points
+          <br />
+          2nd = 19 points
+          <br />
+          3rd = 18 points
+          <br />
+          4th = 17 points
+          <br />
+          and so on down to
+          <br />
+          20th = 1 point.
+          <br /><br />
+
+          If players tie, they share the points for the
+          positions they occupy.
         </p>
+
       </div>
 
       {loading && (
@@ -157,18 +196,22 @@ export default function CompetitionPage() {
 
       {!loading && !message && rounds.length === 0 && (
         <div className="card">
+
           <h3>No rounds yet</h3>
 
           <p className="muted">
             The table will appear when rounds are scored.
           </p>
+
         </div>
       )}
 
       {!loading && !message && rounds.length > 0 && (
         <div className="card">
 
-          <h3>Competition Leaderboard</h3>
+          <h3>
+            Competition Leaderboard
+          </h3>
 
           <div style={{ overflowX: "auto" }}>
 
@@ -177,11 +220,16 @@ export default function CompetitionPage() {
               <thead>
 
                 <tr>
+
                   <th>Pos</th>
+
                   <th>Player</th>
 
                   {rounds.map(r => (
-                    <th key={r.id} className="right">
+                    <th
+                      key={r.id}
+                      className="right"
+                    >
                       R{r.round_number}
                     </th>
                   ))}
@@ -189,6 +237,7 @@ export default function CompetitionPage() {
                   <th className="right">
                     Total
                   </th>
+
                 </tr>
 
               </thead>
@@ -221,9 +270,11 @@ export default function CompetitionPage() {
                     ))}
 
                     <td className="right">
+
                       <strong>
                         {row.total}
                       </strong>
+
                     </td>
 
                   </tr>
@@ -247,15 +298,31 @@ export default function CompetitionPage() {
 
       <div className="card">
 
-        <h3>How it works</h3>
+        <h3>
+          How it works
+        </h3>
 
         <p className="muted">
-          Your weekly Pick 7 finishing position earns
-          competition points. The player with the most
-          competition points after 5 rounds wins.
+          Every player predicts the 7 selected matches.
+          <br /><br />
+
+          Exact score = <strong>10 points</strong>
+          <br />
+          Correct result = <strong>6 points</strong>
+          <br />
+          Wrong result = <strong>0 points</strong>
+          <br /><br />
+
+          Your total match points determine your finishing
+          position for that round.
+          Your competition points are then calculated from
+          the number of players who entered.
         </p>
 
-        <Link className="btn" href="/">
+        <Link
+          className="btn"
+          href="/"
+        >
           MAKE YOUR PICKS
         </Link>
 
