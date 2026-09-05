@@ -1,16 +1,38 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 export default function Admin() {
-  const db = supabase();
+  const [message, setMessage] = useState("Checking database...");
+
+  useEffect(() => {
+    checkDatabase();
+  }, []);
+
+  async function checkDatabase() {
+    const db = supabase();
+
+    const { data, error } = await db
+      .from("rounds")
+      .select("*")
+      .limit(5);
+
+    if (error) {
+      setMessage("Database error: " + error.message);
+    } else {
+      setMessage(
+        "Database working. Rounds found: " + (data?.length || 0)
+      );
+    }
+  }
 
   return (
     <main className="wrap">
       <div className="card">
         <div className="muted">PICK 7 ADMIN</div>
         <h2>Admin Dashboard</h2>
-        <p>Supabase connection is working.</p>
+        <p>{message}</p>
       </div>
     </main>
   );
