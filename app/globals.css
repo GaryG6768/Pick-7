@@ -220,7 +220,7 @@ h2{
 
   .fixture{
     grid-template-columns:minmax(0,1fr) 44px 8px 44px minmax(0,1fr);
-    gap:4px
+    gap:5px
   }
 
   .score{
