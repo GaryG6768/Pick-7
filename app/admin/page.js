@@ -1,5 +1,7 @@
 export const dynamic = "force-dynamic";
 
+import { createClient } from "@supabase/supabase-js";
+
 export default async function Admin() {
   let message = "Checking database...";
 
