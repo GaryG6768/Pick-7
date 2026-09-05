@@ -136,7 +136,8 @@ export default function CompetitionPage() {
         </h2>
 
         <p className="muted">
-          Weekly points: 1st 10 • 2nd 7 • 3rd 5 • 4th 3 • 5th 2 • 6th 1
+          Weekly points: 1st 7 • 2nd 6 • 3rd 5 • 4th 4 • 5th 3 • 6th 2 • 7th 1
+          Ties share the points for the positions involved.
         </p>
       </div>
 
