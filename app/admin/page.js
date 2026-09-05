@@ -6,6 +6,7 @@ import { supabase } from "../../lib/supabase";
 export default function Admin() {
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [competitions, setCompetitions] = useState([]);
   const [rounds, setRounds] = useState([]);
   const [selectedCompetition, setSelectedCompetition] = useState("");
@@ -29,36 +30,62 @@ export default function Admin() {
       data: { user },
     } = await supabase().auth.getUser();
 
-    setUser(user || null);
-
-    if (user) {
-      loadData();
-    } else {
+    if (!user) {
       setMessage("Please sign in as the Pick 7 administrator.");
-    }
-  }
-
-  async function sendLogin() {
-    if (!email.trim()) {
-      setMessage("Enter your admin email address.");
       return;
     }
 
-    setMessage("Sending sign-in link...");
+    const { data: profile, error } = await supabase()
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .single();
 
-    const { error } = await supabase().auth.signInWithOtp({
+    if (error || !profile?.is_admin) {
+      await supabase().auth.signOut();
+      setMessage("This account is not authorised as a Pick 7 administrator.");
+      return;
+    }
+
+    setUser(user);
+    loadData();
+  }
+
+  async function login() {
+    if (!email.trim() || !password) {
+      setMessage("Enter your email address and password.");
+      return;
+    }
+
+    setMessage("Signing in...");
+
+    const { data, error } = await supabase().auth.signInWithPassword({
       email: email.trim(),
-      options: {
-        emailRedirectTo: window.location.origin + "/admin",
-      },
+      password,
     });
 
     if (error) {
-      setMessage(error.message);
+      setMessage("Sign-in failed: " + error.message);
       return;
     }
 
-    setMessage("Check your email and tap the Pick 7 sign-in link.");
+    const { data: profile, error: profileError } = await supabase()
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", data.user.id)
+      .single();
+
+    if (profileError || !profile?.is_admin) {
+      await supabase().auth.signOut();
+      setUser(null);
+      setMessage("This account is not authorised as a Pick 7 administrator.");
+      return;
+    }
+
+    setUser(data.user);
+    setPassword("");
+    setMessage("");
+    loadData();
   }
 
   async function logout() {
@@ -156,10 +183,7 @@ export default function Admin() {
           <div className="muted">PICK 7 ADMIN</div>
           <h2>Administrator Sign-in</h2>
 
-          <p>
-            Sign in with the email address registered as the Pick 7
-            administrator.
-          </p>
+          <p>Sign in with your Pick 7 administrator account.</p>
 
           <input
             type="email"
@@ -177,8 +201,24 @@ export default function Admin() {
             }}
           />
 
-          <button className="btn" onClick={sendLogin}>
-            SEND ADMIN SIGN-IN LINK
+          <input
+            type="password"
+            placeholder="Admin password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{
+              width: "100%",
+              padding: 12,
+              marginBottom: 12,
+              background: "#07111f",
+              color: "white",
+              border: "1px solid #42627e",
+              borderRadius: 8,
+            }}
+          />
+
+          <button className="btn" onClick={login}>
+            SIGN IN
           </button>
 
           {message && (
@@ -196,7 +236,6 @@ export default function Admin() {
       <div className="card">
         <div className="muted">PICK 7 ADMIN</div>
         <h2>Admin Dashboard</h2>
-
         <p>Signed in as administrator.</p>
 
         <button className="btn" onClick={logout}>
