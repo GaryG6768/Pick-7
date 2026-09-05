@@ -3,22 +3,43 @@ import Link from "next/link";
 
 export const metadata = {
   title: "Pick 7",
-  description: "Seven matches. One weekly challenge."
+  description: "Seven matches. One weekly challenge.",
+  manifest: "/manifest.json",
 };
 
 export default function Layout({ children }) {
   return (
     <>
-      <header>
-        <b>PICK 7</b>
-        <span>Seven matches. One weekly challenge.</span>
+      <header className="appHeader">
+        <div className="logo7">7</div>
+        <div>
+          <div className="brand">PICK 7</div>
+          <div className="tag">
+            Seven matches. One weekly challenge.
+          </div>
+        </div>
       </header>
 
-      <nav>
-        <Link href="/">Play</Link>
-        <Link href="/competition">5 Rounds</Link>
-        <Link href="/season">Season</Link>
-        <a href="/admin">Admin</a>
+      <nav className="nav">
+        <Link href="/">
+          ⚽
+          <small>Play</small>
+        </Link>
+
+        <Link href="/competition">
+          🏆
+          <small>5 Rounds</small>
+        </Link>
+
+        <Link href="/season">
+          📊
+          <small>Season</small>
+        </Link>
+
+        <a href="/admin">
+          ⚙️
+          <small>Admin</small>
+        </a>
       </nav>
 
       {children}
