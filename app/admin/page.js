@@ -1,5 +1,5 @@
 export const dynamic = "force-dynamic";
-
+export const runtime = "nodejs";
 export default async function Admin() {
   let message = "Testing Supabase connection...";
 
