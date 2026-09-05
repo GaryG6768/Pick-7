@@ -14,11 +14,54 @@ export default function Home() {
   const [user, setUser] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const [lockTime, setLockTime] = useState(null);
+  const [countdown, setCountdown] = useState("");
 
   useEffect(() => {
     loadRound();
     checkUser();
   }, []);
+
+  useEffect(() => {
+    if (!lockTime) return;
+
+    function updateLock() {
+      const now = Date.now();
+      const target = new Date(lockTime).getTime();
+      const difference = target - now;
+
+      if (difference <= 0) {
+        setLocked(true);
+        setCountdown("PICKS LOCKED");
+        return;
+      }
+
+      const totalSeconds = Math.floor(difference / 1000);
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor((totalSeconds % 86400) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      if (days > 0) {
+        setCountdown(
+          `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`
+        );
+      } else {
+        setCountdown(
+          `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+        );
+      }
+
+      setLocked(false);
+    }
+
+    updateLock();
+
+    const timer = setInterval(updateLock, 1000);
+
+    return () => clearInterval(timer);
+  }, [lockTime]);
 
   async function checkUser() {
     const { data } = await supabase().auth.getUser();
@@ -86,6 +129,13 @@ export default function Home() {
         throw new Error("The 7 selected fixtures could not be loaded.");
       }
 
+      const earliestKickoff = orderedGames
+        .map(game => new Date(game.kickoff).getTime())
+        .sort((a, b) => a - b)[0];
+
+      setLockTime(new Date(earliestKickoff).toISOString());
+      setLocked(earliestKickoff <= Date.now());
+
       setRound(roundData);
       setGames(orderedGames);
       setMessage("");
@@ -133,7 +183,7 @@ export default function Home() {
   }, [user, round]);
 
   function setScore(id, side, value) {
-    if (submitted) return;
+    if (submitted || locked) return;
 
     setPredictions(current => ({
       ...current,
@@ -193,7 +243,7 @@ export default function Home() {
   }
 
   async function submit() {
-    if (submitting || submitted) return;
+    if (submitting || submitted || locked) return;
 
     if (!user) {
       setMessage("Please sign in before submitting your picks.");
@@ -241,6 +291,11 @@ export default function Home() {
       if (error.code === "23505") {
         setSubmitted(true);
         setMessage("Your 7 picks are already submitted and locked.");
+      } else if (
+        error.message?.toLowerCase().includes("locked")
+      ) {
+        setLocked(true);
+        setMessage("The first match has kicked off. Picks are now locked.");
       } else {
         setMessage("Could not submit picks: " + error.message);
       }
@@ -260,7 +315,9 @@ export default function Home() {
       <div className="card">
 
         <div className="muted">
-          {round ? `ROUND ${round.round_number} • OPEN` : "PICK 7"}
+          {round
+            ? `ROUND ${round.round_number} • ${locked ? "LOCKED" : "OPEN"}`
+            : "PICK 7"}
         </div>
 
         <h2>
@@ -275,6 +332,19 @@ export default function Home() {
 
         {!loading && round && games.length === 7 && (
           <>
+
+            {!locked && !submitted && lockTime && (
+              <div className="notice">
+                🔒 PICKS CLOSE IN: <strong>{countdown}</strong>
+              </div>
+            )}
+
+            {locked && (
+              <div className="notice">
+                🔒 PICKS ARE NOW LOCKED
+              </div>
+            )}
+
             <p className="muted">
               Predict the exact score for every match.
             </p>
@@ -291,7 +361,7 @@ export default function Home() {
                   type="number"
                   min="0"
                   inputMode="numeric"
-                  disabled={submitted}
+                  disabled={submitted || locked}
                   value={predictions[game.id]?.home ?? ""}
                   onChange={e =>
                     setScore(game.id, "home", e.target.value)
@@ -305,7 +375,7 @@ export default function Home() {
                   type="number"
                   min="0"
                   inputMode="numeric"
-                  disabled={submitted}
+                  disabled={submitted || locked}
                   value={predictions[game.id]?.away ?? ""}
                   onChange={e =>
                     setScore(game.id, "away", e.target.value)
@@ -324,16 +394,23 @@ export default function Home() {
             <button
               className="btn"
               onClick={submit}
-              disabled={!user || submitted || submitting}
+              disabled={
+                !user ||
+                submitted ||
+                submitting ||
+                locked
+              }
             >
               {submitted
                 ? "PICKS SUBMITTED & LOCKED"
+                : locked
+                ? "PICKS LOCKED"
                 : submitting
                 ? "SUBMITTING..."
                 : "SUBMIT & LOCK MY PICKS"}
             </button>
 
-            {!user && (
+            {!user && !locked && (
               <p className="muted">
                 Please create an account or sign in below before submitting.
               </p>
@@ -344,6 +421,7 @@ export default function Home() {
                 Your predictions are locked and cannot be changed.
               </p>
             )}
+
           </>
         )}
 
