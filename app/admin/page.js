@@ -1,45 +1,27 @@
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-export default async function Admin() {
-  let message = "Testing Supabase connection...";
+import "./globals.css";
+import Link from "next/link";
 
-  try {
-    const url = "https://bwfzxcvwaiipurwdtaxv.supabase.co";
-    const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+export const metadata = {
+  title: "Pick 7",
+  description: "Seven matches. One weekly challenge."
+};
 
-    if (!url || !key) {
-      message = "Environment variables are missing.";
-    } else {
-      const response = await fetch(
-        `${url}/rest/v1/rounds?select=*&limit=5`,
-        {
-          method: "GET",
-          headers: {
-            apikey: key,
-            Authorization: `Bearer ${key}`,
-          },
-          cache: "no-store",
-        }
-      );
-
-      const text = await response.text();
-
-      message =
-        `Supabase response: ${response.status} ` +
-        `${response.statusText}. ` +
-        `Data: ${text.substring(0, 200)}`;
-    }
-  } catch (error) {
-    message = "Connection failed: " + error.message;
-  }
-
+export default function Layout({ children }) {
   return (
-    <main className="wrap">
-      <div className="card">
-        <div className="muted">PICK 7 ADMIN</div>
-        <h2>Admin Dashboard</h2>
-        <p>{message}</p>
-      </div>
-    </main>
+    <>
+      <header>
+        <b>PICK 7</b>
+        <span>Seven matches. One weekly challenge.</span>
+      </header>
+
+      <nav>
+        <Link href="/">Play</Link>
+        <Link href="/competition">5 Rounds</Link>
+        <Link href="/season">Season</Link>
+        <a href="/admin">Admin</a>
+      </nav>
+
+      {children}
+    </>
   );
 }
