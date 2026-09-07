@@ -1,0 +1,1495 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#064b35"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="nlgs-version" content="DIRECT-TEST-34"><title>NLGS — Norwich Loco Golf Society</title><style>
+
+:root{--green:#064b35;--green2:#0a6a4b;--gold:#c9a44a;--cream:#f6f3e8;--ink:#193127;--muted:#6b756f;--white:#fff;--line:#e3e5df}
+*{box-sizing:border-box}body{margin:0;background:#e9ece5;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+.app{max-width:480px;margin:auto;min-height:100vh;background:var(--cream);box-shadow:0 0 30px #0002}.top{background:var(--green);color:#fff;padding:14px 18px;position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between}.brand{font-family:Georgia,serif;font-size:21px;letter-spacing:1px}.sub{font-size:9px;letter-spacing:1.5px;opacity:.85}.iconbtn{background:none;border:0;color:#fff;font-size:23px}.screen{display:none;padding:18px 16px 95px}.screen.active{display:block}.hero{background:linear-gradient(160deg,#064b35,#0b7452);color:#fff;border-radius:20px;padding:25px 20px;margin-bottom:16px;box-shadow:0 10px 25px #064b3530}.hero h1{font:34px Georgia,serif;margin:0 0 4px}.hero p{margin:0;opacity:.9}.card{background:#fff;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 3px 14px #19312710}.card h3{margin:0 0 8px}.label{font-size:12px;color:var(--muted)}.big{font-size:21px;font-weight:750}.btn{border:0;border-radius:12px;padding:13px 16px;background:var(--green);color:#fff;font-weight:750;width:100%;font-size:15px}.btn.secondary{background:#edf0e9;color:var(--green)}.btn.gold{background:var(--gold);color:#173326}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tile{border:0;background:#fff;border-radius:15px;padding:16px;text-align:left;box-shadow:0 3px 14px #19312710;color:var(--ink)}.tile b{display:block;margin-top:7px}.tile span{font-size:12px;color:var(--muted)}.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(480px,100%);background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);z-index:20}.nav button{border:0;background:none;padding:10px 3px;color:#6d756f;font-size:11px}.nav button.active{color:var(--green);font-weight:800}.nav i{display:block;font-style:normal;font-size:19px;margin-bottom:2px}.pill{display:inline-block;background:#e8f2ed;color:var(--green);border-radius:999px;padding:5px 9px;font-size:11px;font-weight:750}.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.scoretable{width:100%;border-collapse:collapse;font-size:13px}.scoretable th{background:var(--green);color:#fff;padding:8px;text-align:center}.scoretable td{padding:8px;border-bottom:1px solid var(--line);text-align:center}.scoretable td:first-child,.scoretable th:first-child{text-align:left}.holebtn{width:100%;padding:15px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:20px;font-weight:700}.holegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.input{width:100%;padding:13px;border:1px solid #d8ddd5;border-radius:10px;background:#fff;font-size:16px}.seg{display:flex;background:#e9ece5;padding:4px;border-radius:11px;margin:12px 0}.seg button{flex:1;border:0;background:none;padding:9px;border-radius:8px;font-weight:700;color:#67716b}.seg button.on{background:#fff;color:var(--green);box-shadow:0 2px 7px #0001}.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#173326;color:#fff;padding:10px 15px;border-radius:10px;display:none;z-index:50;font-size:13px}.adminOnly{display:block}
+.small{font-size:12px;color:var(--muted)}.goldline{height:3px;background:var(--gold);width:55px;margin:10px 0 18px}
+
+.loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px 18px;background:linear-gradient(160deg,#064b35,#063b2b)}
+.loginPanel{width:100%;max-width:440px;background:var(--cream);border-radius:26px;padding:28px 22px;box-shadow:0 18px 45px #0004}
+.logoWrap{width:86px;height:86px;margin:0 auto 14px}.logoWrap svg{width:100%;height:100%}
+.loginPanel h1{font:34px Georgia,serif;text-align:center;margin:0;color:var(--green)}.loginSub{text-align:center;font-size:10px;letter-spacing:1.7px;color:var(--muted);margin:5px 0 24px}
+.loginPanel label{display:block;font-size:12px;font-weight:800;margin:15px 0 7px}.loginPanel input{width:100%;padding:15px;border:1px solid #d4dad2;border-radius:12px;background:#fff;font-size:17px;outline:none}.loginPanel input:focus{border-color:var(--green2)}.loginPin{letter-spacing:8px;text-align:center;font-size:22px!important}
+.loginMsg{min-height:22px;text-align:center;font-size:13px;margin-top:12px;color:#a33}
+.appShell{display:none}.top button{cursor:pointer}.adminLink{display:none}
+.player-card{border:1px solid var(--line);border-radius:12px;padding:11px;margin-top:10px;background:#fbfcf9}.player-title{font-weight:800;font-size:14px;margin-bottom:7px}.player-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.compact-input{padding:10px 9px;font-size:15px}.member-select{width:100%;padding:12px 10px;border:1px solid #d8ddd5;border-radius:10px;background:#fff;font-size:15px;color:var(--ink)}.member-info{background:#edf4ef;border-radius:10px;padding:10px;margin-top:8px}.guest-fields{margin-top:8px}.override-wrap{margin-top:8px}.override-wrap label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}</style></head><body>
+
+<section id="loginScreen" class="loginScreen">
+  <div class="loginPanel">
+    <div class="logoWrap"><svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect width="512" height="512" rx="90" fill="#064b35"/><circle cx="256" cy="170" r="82" fill="#f6f3e8"/><path d="M256 90v165M181 350c45-45 105-45 150 0" fill="none" stroke="#c9a44a" stroke-width="18" stroke-linecap="round"/><text x="256" y="438" text-anchor="middle" font-family="Georgia,serif" font-size="76" font-weight="700" fill="#fff">NLGS</text></svg></div>
+    <h1>NLGS</h1><div class="loginSub">NORWICH LOCO GOLF SOCIETY</div><div class="goldline"></div>
+    <label>MEMBER NAME</label><input id="loginName" autocomplete="name" placeholder="Enter your name">
+    <label>4-DIGIT PIN</label><input id="loginPin" class="loginPin" inputmode="numeric" maxlength="4" type="password" placeholder="••••">
+    <button class="btn" id="loginBtn" onclick="nlgsLogin()">LOGIN</button>
+    <div id="loginMsg" class="loginMsg"></div>
+  </div>
+</section>
+
+<div id="appShell" class="appShell">
+<div class="app">
+<header class="top">
+  <button class="iconbtn" onclick="toggleMenu()">☰</button>
+  <div style="text-align:center"><div class="brand">NLGS</div><div class="sub">NORWICH LOCO GOLF SOCIETY</div></div>
+  <button class="iconbtn" onclick="nlgsLogout()">↪</button>
+</header>
+
+<main>
+<section id="home" class="screen active">
+  <div class="hero"><div class="sub">WELCOME TO</div><h1>NLGS</h1><p id="welcome">Play • Compete • Enjoy</p><div class="goldline"></div><div class="small" style="color:#fff">Your society golf app</div></div>
+  <div class="card"><div class="row"><div><div class="label">NEXT COMPETITION</div><div class="big">NLGS Monthly Stableford</div><div class="small">Royal Cromer • Saturday 14 September</div></div><span class="pill">85% HDC</span></div><button class="btn" style="margin-top:14px" onclick="show('score')">PLAY A ROUND</button></div>
+  <div class="grid2">
+    <button class="tile" onclick="show('leader')">🏆<b>Leaderboard</b><span>Live results</span></button>
+    <button class="tile" onclick="show('fixtures')">📅<b>Fixtures</b><span>Upcoming events</span></button>
+    <button class="tile" onclick="show('mygolf')">👤<b>My Golf</b><span>Stats & history</span></button>
+    <button class="tile" onclick="show('friendly')">🏌️<b>Friendly Game</b><span>Play with friends or guests</span></button>
+    <button class="tile" onclick="show('admin')">⚙️<b>Admin</b><span>Manage NLGS</span></button>
+  </div>
+</section>
+
+<section id="score" class="screen">
+  <div class="row"><div><div class="label">CURRENT ROUND</div><h2 style="margin:3px 0">Monthly Stableford</h2></div><span class="pill">85%</span></div>
+  <div class="card"><div class="label">ROYAL CROMER GOLF CLUB</div><div class="row"><span>HCP <span id="hcp">—</span> → <b>playing handicap</b></span><span id="roundTotal">0 pts</span></div></div>
+  <div class="card">
+    <div class="row"><b id="holeTitle">Hole 1</b><span class="pill" id="holeInfo">Par 4 • SI 8</span></div>
+    <div style="margin:18px 0"><input id="scoreInput" class="input" type="number" min="1" max="15" inputmode="numeric" placeholder="Enter strokes"></div>
+    <button class="btn" onclick="saveScore()">SAVE SCORE</button>
+  </div>
+  <div class="card"><div class="row"><span>Hole</span><b id="holeNum">1 / 18</b></div><div class="holegrid" style="margin-top:12px" id="holeGrid"></div></div>
+  <button class="btn secondary" onclick="show('leader')">VIEW LEADERBOARD</button>
+</section>
+
+<section id="leader" class="screen">
+  <div class="label">CURRENT COMPETITION</div><h2 style="margin:4px 0">Monthly Stableford</h2>
+  <div class="card"><div class="row"><span>Royal Cromer Golf Club</span><span class="pill">85% HDC</span></div></div>
+  <div class="seg"><button class="on">Stableford</button><button>Net</button><button>Gross</button></div>
+  <div class="card" style="padding:7px">
+  <table class="scoretable"><thead><tr><th>Pos</th><th>Player</th><th>H/C</th><th>Pts</th></tr></thead><tbody id="leaderBody"></tbody></table></div>
+</section>
+
+<section id="fixtures" class="screen">
+  <h2 style="margin-top:0">Fixtures</h2>
+  <div class="card"><span class="pill">SEP 14</span><h3>Monthly Stableford</h3><div class="small">Royal Cromer Golf Club</div></div>
+  <div class="card"><span class="pill">OCT 12</span><h3>Autumn Medal</h3><div class="small">Bawburgh Golf Club</div></div>
+  <div class="card"><span class="pill">NOV 09</span><h3>NLGS Match Play</h3><div class="small">Royal Norwich • Round 1</div></div>
+  <div class="card"><span class="pill">DEC 07</span><h3>Winter League</h3><div class="small">Barnham Broom</div></div>
+</section>
+
+
+<section id="friendly" class="screen">
+  <div class="label">CASUAL ROUND</div>
+  <h2 style="margin:4px 0">Friendly Game</h2>
+  <div class="small" style="margin-bottom:12px">Create a four-player round for any NLGS members or guests.</div>
+  <div class="card">
+    <div class="small">Play a round that is completely separate from NLGS competitions and the season league.</div>
+  </div>
+
+  <div class="card">
+    <h3>Round details</h3>
+    <label class="label">GOLF COURSE</label>
+    <select id="friendlyCourse" class="input" onchange="applySelectedCourse()">
+      <option value="">Loading NLGS courses…</option>
+    </select>
+
+    <label class="label" style="display:block;margin-top:12px">TEES</label>
+    <select id="friendlyTee" class="input" onchange="applySelectedTee()">
+      <option value="">Loading tees…</option>
+    </select>
+    <div id="friendlyTeeInfo" class="small" style="margin-top:8px">Yellow tees are the NLGS default. You can change this for each round.</div>
+
+    <label class="label" style="display:block;margin-top:12px">DATE</label>
+    <input id="friendlyDate" class="input" type="date">
+
+    <label class="label" style="display:block;margin-top:12px">FORMAT</label>
+    <div class="seg">
+      <button id="ffStableford" class="on" onclick="setFriendlyFormat('Stableford')">Stableford</button>
+      <button id="ffMedal" onclick="setFriendlyFormat('Medal')">Medal</button>
+      <button id="ffMatch" onclick="setFriendlyFormat('Match Play')">Match Play</button>
+    </div>
+
+    <label class="label" style="display:block;margin-top:4px">HANDICAP ALLOWANCE</label>
+    <div class="seg">
+      <button id="fa100" class="on" onclick="setFriendlyAllowance('100%')">100%</button>
+      <button id="fa85" onclick="setFriendlyAllowance('85%')">85%</button>
+      <button id="fa75" onclick="setFriendlyAllowance('75%')">75%</button>
+    </div>
+
+    <div class="small" style="margin-top:14px">Playing handicaps are calculated automatically for the selected course. Course and tee ratings are handled behind the scenes.</div>
+    <input id="friendlyCR" type="hidden" value="">
+    <input id="friendlySlope" type="hidden" value="">
+    <input id="friendlyPar" type="hidden" value="">
+  </div>
+
+  <div class="card">
+    <h3 id="friendlyPlayersHeading">Players — 4 Ball</h3>
+    <div class="label" style="display:block;margin-top:4px">NUMBER OF PLAYERS</div>
+    <div class="seg" id="friendlyPlayerCountSeg">
+      <button id="fpc1" onclick="setFriendlyPlayerCount(1)">1</button>
+      <button id="fpc2" onclick="setFriendlyPlayerCount(2)">2</button>
+      <button id="fpc3" onclick="setFriendlyPlayerCount(3)">3</button>
+      <button id="fpc4" class="on" onclick="setFriendlyPlayerCount(4)">4</button>
+    </div>
+    <div class="small" style="margin:10px 0">You can start a friendly game with 1, 2, 3 or 4 players. Select an NLGS member and their current handicap will be filled in automatically. For a guest, choose Guest / non-member and enter their details.</div>
+    <div id="friendlyPlayerCards"></div>
+  </div>
+
+  <button class="btn" onclick="startFriendlyRound()">START FRIENDLY ROUND</button>
+</section>
+
+<section id="friendlyScore" class="screen">
+  <div class="row">
+    <div><div class="label">FRIENDLY GAME</div><h2 id="friendlyCourseTitle" style="margin:3px 0">Round</h2></div>
+    <span class="pill" id="friendlyFormatPill">Stableford</span>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div><div class="label">CURRENT HOLE</div><div class="big" id="friendlyHoleTitle">Hole 1</div><div class="small" id="friendlyHoleInfo">Par 4 • SI 5</div></div>
+      <span class="pill" id="friendlyAllowancePill">100%</span>
+    </div>
+    <div class="small" style="margin-top:10px">Enter the score for each player. Their handicap shots are shown automatically.</div>
+    <div id="friendlyHolePlayers" style="margin-top:12px"></div>
+    <button class="btn" style="margin-top:12px" onclick="saveFriendlyScore()">SAVE HOLE</button>
+  </div>
+
+  <div class="card">
+    <h3>Players in this round</h3>
+    <div id="friendlyPlayersList"></div>
+  </div>
+
+  <div class="card">
+    <div class="row"><span>Hole</span><b id="friendlyHoleNum">1 / 18</b></div>
+    <div class="holegrid" style="margin-top:12px" id="friendlyHoleGrid"></div>
+  </div>
+
+  <div class="card">
+    <div class="row"><h3 style="margin:0">Course Scorecard</h3><span class="small" id="friendlyCourseScorecardTotal">—</span></div>
+    <div style="overflow-x:auto;margin-top:10px">
+      <table class="scoretable">
+        <thead><tr><th>Hole</th><th>Yards</th><th>Par</th><th>SI</th></tr></thead>
+        <tbody id="friendlyCourseScorecardBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <button class="btn secondary" onclick="finishFriendlyRound()">FINISH / VIEW SUMMARY</button>
+</section>
+
+<section id="friendlySummary" class="screen">
+  <div class="label">ROUND COMPLETE</div>
+  <h2 style="margin:4px 0">Friendly Game Results</h2>
+  <div class="card">
+    <div class="label" id="friendlySummaryCourse">Course</div>
+    <div class="small" id="friendlySummaryDetails"></div>
+  </div>
+
+  <div class="card" id="friendlyWinnerCard" style="text-align:center;padding:20px 14px">
+    <div class="label">WINNER</div>
+    <div style="font-size:34px;margin:5px 0">🏆</div>
+    <div class="big" id="friendlyWinnerName">—</div>
+    <div class="small" id="friendlyWinnerScore">—</div>
+  </div>
+
+  <div class="card" style="padding:7px">
+    <div class="row" style="padding:8px 10px 10px">
+      <h3 style="margin:0">Final Leaderboard</h3>
+      <span class="small" id="friendlySummaryMode">Stableford</span>
+    </div>
+    <table class="scoretable">
+      <thead><tr><th>Pos</th><th>Player</th><th>Gross</th><th>Net</th><th>Pts</th></tr></thead>
+      <tbody id="friendlySummaryBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card" id="friendlySummaryBreakdown">
+    <h3 style="margin-top:0">Round Details</h3>
+    <div id="friendlySummaryPlayerCards"></div>
+  </div>
+
+  <div class="card"><div class="small">This friendly round is saved on this device and does not affect NLGS competition results or the season league.</div></div>
+  <button class="btn" onclick="show('friendly')">NEW FRIENDLY GAME</button>
+  <button class="btn secondary" style="margin-top:8px" onclick="show('mygolf')">BACK TO MY GOLF</button>
+</section>
+
+<section id="mygolf" class="screen">
+  <h2 style="margin-top:0">My Golf</h2>
+  <div class="card"><div class="row"><div><div class="label">PLAYER</div><div class="big" id="myGolfName">Member</div><div class="small">Handicap <span id="myGolfHcp">—</span></div></div><span style="font-size:40px">⛳</span></div></div>
+  <div class="grid2">
+    <div class="tile"><span>Rounds played</span><b>24</b></div><div class="tile"><span>Average score</span><b>83</b></div>
+    <div class="tile"><span>Best gross</span><b>76</b></div><div class="tile"><span>Best Stableford</span><b>44</b></div>
+  </div>
+  <div class="card"><h3>Recent results</h3><div class="row" style="padding:9px 0;border-bottom:1px solid var(--line)"><span>NLGS Stableford</span><b>41 pts</b></div><div class="row" style="padding:9px 0"><span>Summer Medal</span><b>72 net</b></div></div>
+</section>
+
+<section id="competitionBuilder" class="screen adminOnly">
+  <div class="label">NLGS ADMIN</div>
+  <h2 style="margin:4px 0">Create Competition</h2>
+  <div class="small" style="margin-bottom:12px">Set up the event, course, handicap allowance and players. Competition scoring will be the next stage.</div>
+
+  <div class="card">
+    <h3>Competition details</h3>
+    <label class="label">COMPETITION NAME</label>
+    <input id="compName" class="input" placeholder="e.g. September Stableford">
+    <label class="label" style="display:block;margin-top:12px">DATE</label>
+    <input id="compDate" class="input" type="date">
+    <label class="label" style="display:block;margin-top:12px">FORMAT</label>
+    <div class="seg">
+      <button id="cfStableford" class="on" onclick="setCompetitionFormat('Stableford')">Stableford</button>
+      <button id="cfMedal" onclick="setCompetitionFormat('Medal')">Medal</button>
+      <button id="cfMatch" onclick="setCompetitionFormat('Match Play')">Match Play</button>
+      <button id="cfLeague" onclick="setCompetitionFormat('Season League')">Season League</button>
+    </div>
+    <label class="label" style="display:block;margin-top:4px">HANDICAP ALLOWANCE</label>
+    <div class="seg">
+      <button id="ca100" class="on" onclick="setCompetitionAllowance('100%')">100%</button>
+      <button id="ca85" onclick="setCompetitionAllowance('85%')">85%</button>
+      <button id="ca75" onclick="setCompetitionAllowance('75%')">75%</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Course & tees</h3>
+    <label class="label">GOLF COURSE</label>
+    <select id="compCourse" class="input" onchange="applyCompetitionCourse()"><option value="">Loading courses…</option></select>
+    <label class="label" style="display:block;margin-top:12px">TEES</label>
+    <select id="compTee" class="input"><option value="">Loading tees…</option></select>
+    <div id="compTeeInfo" class="small" style="margin-top:8px">Select a course to load its available tees.</div>
+  </div>
+
+  <div class="card">
+    <div class="row"><h3 style="margin:0">Players</h3><span class="pill" id="compPlayerCount">0 selected</span></div>
+    <div class="small" style="margin:8px 0 10px">Choose the NLGS members taking part in this competition, then add any guests below.</div>
+    <div id="compPlayersList"></div>
+    <div id="compGuestsBox" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)"></div>
+  </div>
+
+  <button class="btn" onclick="createCompetitionDraft()">CREATE COMPETITION</button>
+  <button class="btn secondary" style="margin-top:8px" onclick="show('admin')">BACK TO ADMIN</button>
+</section>
+
+<section id="admin" class="screen adminOnly">
+  <h2 style="margin-top:0">NLGS Admin</h2>
+  <div class="card"><h3>Players & Handicaps</h3><div class="small">Full admin access. Add members, update handicaps and manage PINs.</div><button class="btn" style="margin-top:12px" onclick="toast('Player management coming next')">MANAGE PLAYERS</button></div>
+  <div class="card"><h3>Competitions</h3><div class="small">Create Stableford, Medal, Match Play and Season League events.</div><button class="btn" style="margin-top:12px" onclick="openCompetitionBuilder()">CREATE COMPETITION</button></div>
+  <div class="card"><h3>Courses</h3><div class="small">Add Norwich, Great Yarmouth and Lowestoft area courses with Par and Stroke Index.</div><button class="btn" style="margin-top:12px" onclick="toast('Course manager coming next')">MANAGE COURSES</button></div>
+  <div class="card"><h3>Second Administrator</h3><div class="small">Restricted role: Players + Handicaps only.</div></div>
+</section>
+</main>
+
+<nav class="nav">
+<button onclick="show('home')" data-nav="home" class="active"><i>⌂</i>Home</button>
+<button onclick="show('score')" data-nav="score"><i>🏌</i>Score</button>
+<button onclick="show('leader')" data-nav="leader"><i>🏆</i>Results</button>
+<button onclick="show('mygolf')" data-nav="mygolf"><i>●</i>My Golf</button>
+</nav>
+<div id="toast" class="toast"></div>
+</div>
+<script>
+const holes=[
+[4,8],[5,2],[3,14],[4,10],[5,6],[3,16],[5,4],[4,12],[4,18],
+[4,7],[4,1],[3,15],[5,3],[4,9],[4,13],[3,17],[5,5],[4,11]
+];
+let currentHole=1, scores=JSON.parse(localStorage.getItem('nlgsScores')||'{}');
+const players=[
+ ['John Smith',14,42],['Gary',12,41],['Mark Davis',18,39],['Steve Allen',16,38],
+ ['Lee Carter',20,36],['Paul Wright',15,35],['Chris Baker',22,34],['Dan Morris',17,33],
+ ['Nick Howard',24,32],['Matt Jones',19,31]
+];
+function show(id){
+ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.nav===id));
+ if(id==='score') renderScore(); if(id==='leader') renderLeader(); if(id==='friendlyScore') renderFriendlyScore();
+ window.scrollTo(0,0);
+}
+function toast(t){let e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
+function toggleMenu(){toast('NLGS menu ready for member/admin options')}
+function renderScore(){
+ document.getElementById('holeTitle').textContent='Hole '+currentHole;
+ document.getElementById('holeInfo').textContent='Par '+holes[currentHole-1][0]+' • SI '+holes[currentHole-1][1];
+ document.getElementById('holeNum').textContent=currentHole+' / 18';
+ document.getElementById('scoreInput').value=scores[currentHole]||'';
+ const g=document.getElementById('holeGrid');g.innerHTML='';
+ for(let i=1;i<=18;i++){let b=document.createElement('button');b.className='holebtn';b.textContent=i;b.onclick=()=>{currentHole=i;renderScore()};if(scores[i])b.style.background='#e8f2ed';g.appendChild(b)}
+ let total=0;Object.values(scores).forEach(v=>total+=Number(v)||0);document.getElementById('roundTotal').textContent=total+' strokes';
+}
+function saveScore(){
+ let v=Number(document.getElementById('scoreInput').value);if(!v||v<1){toast('Enter a valid score');return}
+ scores[currentHole]=v;localStorage.setItem('nlgsScores',JSON.stringify(scores));toast('Hole '+currentHole+' saved');
+ if(currentHole<18){currentHole++;renderScore()}else{toast('Round complete');renderScore()}
+}
+function stableford(score,par,shots){
+ let net=score-shots; let pts=net<=par-2?4:net===par-1?3:net===par?2:net===par+1?1:0; return pts;
+}
+
+let friendlyFormat='Stableford';
+let friendlyAllowance='100%';
+let friendlyRound=null;
+
+function setFriendlyFormat(v){
+  friendlyFormat=v;
+  ['Stableford','Medal','Match Play'].forEach(x=>{
+    const id=x==='Stableford'?'ffStableford':x==='Medal'?'ffMedal':'ffMatch';
+    const el=document.getElementById(id); if(el) el.classList.toggle('on',x===v);
+  });
+}
+function setFriendlyAllowance(v){
+  friendlyAllowance=v;
+  ['100%','85%','75%'].forEach(x=>{
+    const id=x==='100%'?'fa100':x==='85%'?'fa85':'fa75';
+    const el=document.getElementById(id); if(el) el.classList.toggle('on',x===v);
+  });
+}
+function friendlyToday(){
+  const d=new Date();
+  const local=new Date(d.getTime()-d.getTimezoneOffset()*60000);
+  return local.toISOString().slice(0,10);
+}
+function loadFriendlySetup(){
+  const date=document.getElementById('friendlyDate'); if(date && !date.value) date.value=friendlyToday();
+  for(let i=1;i<=4;i++){const p=document.getElementById('friendlyP'+i); if(p) p.value='';}
+  for(let i=1;i<=4;i++){
+    ['friendlyH'+i,'friendlyO'+i].forEach(id=>document.getElementById(id)?.addEventListener('input',refreshFriendlyHandicaps));
+  }
+  ['friendlyCR','friendlySlope','friendlyPar'].forEach(id=>document.getElementById(id)?.addEventListener('input',refreshFriendlyHandicaps));
+}
+
+function roundNearest(x){ return Math.floor(x+0.5); }
+function friendlyAllowancePct(){ return Number(friendlyAllowance.replace('%',''))/100; }
+function calculateFriendlyHandicap(index){
+  const cr=Number(document.getElementById('friendlyCR')?.value);
+  const slope=Number(document.getElementById('friendlySlope')?.value);
+  const par=Number(document.getElementById('friendlyPar')?.value);
+  if(!Number.isFinite(index)||!Number.isFinite(cr)||!Number.isFinite(slope)||!Number.isFinite(par)||slope<=0) return null;
+  const courseHcp=roundNearest(index*(slope/113)+(cr-par));
+  const playingHcp=roundNearest(courseHcp*friendlyAllowancePct());
+  return {courseHcp,playingHcp};
+}
+function refreshFriendlyHandicaps(){
+  for(let i=1;i<=4;i++){
+    const idx=Number(document.getElementById('friendlyH'+i)?.value);
+    const calc=calculateFriendlyHandicap(idx);
+    const override=document.getElementById('friendlyO'+i)?.value;
+    const el=document.getElementById('friendlyCalc'+i);
+    if(!el) continue;
+    if(!calc){el.textContent='Course HCP — • Playing HCP —';continue}
+    const ph=override!=='' && override!=null ? Number(override) : calc.playingHcp;
+    el.textContent='Handicap Index '+(Number.isFinite(idx)?Number(idx).toFixed(1):'—')+' • Course HCP '+calc.courseHcp+' • Playing HCP '+ph+(override!==''?' (manual override)':'');
+  }
+}
+
+function startFriendlyRound(){
+  const players=[];
+  for(let i=1;i<=4;i++){
+    const v=document.getElementById('friendlyP'+i)?.value.trim();
+    if(v) players.push(v);
+  }
+  if(players.length!==4){toast('Please add all 4 players');return}
+  if(new Set(players.map(p=>p.toLowerCase())).size!==4){toast('Each player must have a different name');return}
+  refreshFriendlyHandicaps();
+  const playerData=players.map((name,i)=>{
+    const idx=Number(document.getElementById('friendlyH'+(i+1)).value);
+    const calc=calculateFriendlyHandicap(idx);
+    if(!calc) return null;
+    const ov=document.getElementById('friendlyO'+(i+1)).value;
+    const ph=(ov!=='' ? Number(ov) : calc.playingHcp);
+    return {name, handicapIndex:idx, courseHandicap:calc.courseHcp, playingHandicap:ph, override:ov!==''};
+  });
+  if(playerData.some(x=>!x)){toast('Enter a valid Handicap Index for all 4 players');return}
+  friendlyRound={
+    course:document.getElementById('friendlyCourse').value,
+    date:document.getElementById('friendlyDate').value||friendlyToday(),
+    format:friendlyFormat,
+    allowance:friendlyAllowance,
+    courseRating:Number(document.getElementById('friendlyCR').value),
+    slope:Number(document.getElementById('friendlySlope').value),
+    par:Number(document.getElementById('friendlyPar').value),
+    players:players,
+    playerData:playerData,
+    scores:{}
+  };
+  players.forEach((p,i)=>friendlyRound.scores[p]={});
+  friendlyRound.currentPlayer=0;
+  friendlyRound.currentHole=1;
+  sessionStorage.setItem('nlgsFriendlyRound',JSON.stringify(friendlyRound));
+  show('friendlyScore');
+  renderFriendlyScore();
+}
+function getFriendlyRound(){
+  if(!friendlyRound) friendlyRound=JSON.parse(sessionStorage.getItem('nlgsFriendlyRound')||'null');
+  return friendlyRound;
+}
+function renderFriendlyScore(){
+  const r=getFriendlyRound(); if(!r)return;
+  if(Number.isFinite(Number(r.playerCount))){ r.playerCount=Math.max(1,Math.min(4,Number(r.playerCount))); }
+  const h=friendlyHoleData(r,r.currentHole);
+  document.getElementById('friendlyCourseTitle').textContent=r.course+' • '+(r.tee||'Yellow');
+  document.getElementById('friendlyFormatPill').textContent=r.format;
+  document.getElementById('friendlyAllowancePill').textContent=r.allowance;
+  document.getElementById('friendlyHoleTitle').textContent='Hole '+r.currentHole;
+  const info='Par '+h.par+' • SI '+h.stroke_index;
+  document.getElementById('friendlyHoleInfo').textContent=info;
+  document.getElementById('friendlyHoleNum').textContent=r.currentHole+' / 18';
+
+  const hp=document.getElementById('friendlyHolePlayers');
+  hp.innerHTML='';
+  r.players.forEach((p,i)=>{
+    const pd=(r.playerData||[])[i]||{};
+    const shots=friendlyShotsOnHole(pd.playingHandicap,h.stroke_index);
+    const saved=r.scores[p]?.[r.currentHole];
+    const points=saved?friendlyPoints(Number(saved),h.par,shots):null;
+    const row=document.createElement('div');
+    row.style.padding='12px 0';
+    row.style.borderBottom=i<r.players.length-1?'1px solid var(--line)':'0';
+    row.innerHTML=`
+      <div class="row">
+        <div>
+          <b>${p}</b>
+          <div class="small">PH ${pd.playingHandicap??'—'} • ${shots} shot${shots===1?'':'s'} • ${points!==null?points+' point'+(points===1?'':'s'): '— points'}</div>
+        </div>
+        <input class="input friendly-hole-score" data-player="${i}" type="number" min="1" max="15" inputmode="numeric" placeholder="Score" value="${saved||''}" style="width:100px;text-align:center;margin:0"> 
+      </div>`;
+    hp.appendChild(row);
+  });
+
+  const g=document.getElementById('friendlyHoleGrid'); g.innerHTML='';
+  for(let i=1;i<=18;i++){
+    const b=document.createElement('button'); b.className='holebtn'; b.textContent=i;
+    const hd=friendlyHoleData(r,i);
+    b.title='Par '+hd.par+' • SI '+hd.stroke_index+(hd.yards!=null?' • '+hd.yards+' yds':'');
+    b.onclick=()=>{r.currentHole=i;saveFriendlyState();renderFriendlyScore()};
+    if(r.players.some(p=>r.scores[p]?.[i])) b.style.background='#e8f2ed';
+    g.appendChild(b);
+  }
+
+  const list=document.getElementById('friendlyPlayersList'); list.innerHTML='';
+  r.players.forEach((p,i)=>{
+    const div=document.createElement('div'); div.className='row';
+    const total=Object.values(r.scores[p]||{}).reduce((a,v)=>a+(Number(v)||0),0);
+    const holesPlayed=Object.keys(r.scores[p]||{}).filter(k=>Number(r.scores[p][k])>0).length;
+    div.style.padding='8px 0';
+    div.style.borderBottom=i<r.players.length-1?'1px solid var(--line)':'0';
+    const pd=(r.playerData||[])[i]||{};
+    div.innerHTML='<span>'+p+'<br><span class="small">Handicap Index '+(pd.handicapIndex!=null?Number(pd.handicapIndex).toFixed(1):'—')+' • Course HCP '+(pd.courseHandicap??'—')+' • Playing HCP '+(pd.playingHandicap??'—')+' • '+holesPlayed+'/18 holes</span></span><b>'+total+' strokes</b>';
+    list.appendChild(div);
+  });
+}
+
+function saveFriendlyScore(){
+  const r=getFriendlyRound(); if(!r)return;
+  const inputs=[...document.querySelectorAll('.friendly-hole-score')];
+  let savedAny=false;
+  inputs.forEach((input,i)=>{
+    const p=r.players[i];
+    const raw=input.value.trim();
+    if(raw==='') return;
+    const v=Number(raw);
+    if(!Number.isInteger(v) || v<1 || v>15) return;
+    r.scores[p]=r.scores[p]||{};
+    r.scores[p][r.currentHole]=v;
+    savedAny=true;
+  });
+  if(!savedAny){toast('Enter at least one player score');return;}
+  saveFriendlyState();
+  toast('Hole '+r.currentHole+' saved');
+  if(r.currentHole<18){
+    r.currentHole++;
+    saveFriendlyState();
+  }
+  renderFriendlyScore();
+}
+
+function finishFriendlyRound(){
+  const r=getFriendlyRound(); if(!r)return;
+  document.getElementById('friendlySummaryCourse').textContent=r.course;
+  document.getElementById('friendlySummaryDetails').textContent=
+    new Date(r.date+'T12:00:00').toLocaleDateString('en-GB')+' • '+r.format+' • '+r.allowance+' handicap allowance';
+  const body=document.getElementById('friendlySummaryBody'); body.innerHTML='';
+  const results=r.players.map(p=>{
+    const sc=r.scores[p]||{};
+    let gross=0,pts=0;
+    for(let i=1;i<=18;i++){const s=Number(sc[i])||0;gross+=s;pts+=friendlyPoints(s,holes[i-1][0]);}
+    return {p,gross,pts};
+  });
+  results.sort((a,b)=>r.format==='Stableford'?b.pts-a.pts:a.gross-b.gross);
+  results.forEach((x,i)=>{
+    const tr=document.createElement('tr');
+    const pd=(r.playerData||[]).find(z=>z.name===x.p)||{};
+    tr.innerHTML='<td>'+(i+1)+'</td><td style="text-align:left">'+x.p+'<br><span class="small">PH '+(pd.playingHandicap??'—')+'</span></td><td>'+x.gross+'</td><td><b>'+x.pts+'</b></td>';
+    body.appendChild(tr);
+  });
+  sessionStorage.setItem('nlgsLastFriendlyRound',JSON.stringify(r));
+  show('friendlySummary');
+}
+
+function renderLeader(){
+ const body=document.getElementById('leaderBody');body.innerHTML='';
+ players.forEach((p,i)=>{let tr=document.createElement('tr');tr.innerHTML='<td>'+ (i+1) +'</td><td style="text-align:left">'+p[0]+'</td><td>'+p[1]+'</td><td><b>'+p[2]+'</b></td>';body.appendChild(tr)})
+}
+renderLeader();renderScore();
+</script>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const sb=supabase.createClient('https://ifjsjksskaknuqjboxsl.supabase.co','sb_publishable_sM00u7HKZ06m9XFFG2pBug_ypzkbnZp');
+async function nlgsLogin(){
+ const name=document.getElementById('loginName').value.trim(), pin=document.getElementById('loginPin').value.trim();
+ const msg=document.getElementById('loginMsg'), btn=document.getElementById('loginBtn'); msg.textContent='';
+ if(!name||!/^[0-9]{4}$/.test(pin)){msg.textContent='Enter your name and 4-digit PIN.';return}
+ btn.disabled=true;btn.textContent='LOGGING IN…';
+ try{const {data,error}=await sb.rpc('login_member',{p_full_name:name,p_pin:pin}); if(error||!data||data.length===0) throw new Error('bad'); const m=data[0]; sessionStorage.setItem('nlgsMember',JSON.stringify(m)); openApp(m);}
+ catch(e){msg.textContent='Name or PIN not recognised.';}
+ btn.disabled=false;btn.textContent='LOGIN';
+}
+function openApp(m){
+ loadFriendlySetup();
+ document.getElementById('loginScreen').style.display='none';document.getElementById('appShell').style.display='block';
+ const w=document.getElementById('welcome'); if(w) w.textContent=m.full_name;
+ const h=document.getElementById('hcp'); if(h) h.textContent=m.handicap;
+ const myName=document.getElementById('myGolfName'); if(myName) myName.textContent=m.full_name;
+ const myHcp=document.getElementById('myGolfHcp'); if(myHcp) myHcp.textContent=m.handicap;
+ const welcome=document.getElementById('welcome'); if(welcome) welcome.textContent='Welcome, '+m.full_name;
+ const admin=document.getElementById('admin'); if(admin) admin.classList.toggle('adminOnly',false);
+ const adminCard=document.getElementById('adminCard'); if(adminCard) adminCard.style.display=m.role==='admin'||m.role==='handicap_admin'?'block':'none';
+ const adminTile=document.querySelector('[onclick="show(\'admin\')"]'); if(adminTile) adminTile.style.display=m.role==='admin'||m.role==='handicap_admin'?'block':'none';
+}
+function nlgsLogout(){sessionStorage.removeItem('nlgsMember');location.reload();}
+const oldToggle=window.toggleMenu;
+window.toggleMenu=function(){toast('Logged in as '+(JSON.parse(sessionStorage.getItem('nlgsMember')||'{}').full_name||'member'));};
+const oldToast=window.toast;
+// Preserve prototype functions by leaving them in the following script.
+</script>
+<script>
+
+const holes=[
+[4,8],[5,2],[3,14],[4,10],[5,6],[3,16],[5,4],[4,12],[4,18],
+[4,7],[4,1],[3,15],[5,3],[4,9],[4,13],[3,17],[5,5],[4,11]
+];
+let currentHole=1, scores=JSON.parse(localStorage.getItem('nlgsScores')||'{}');
+const players=[
+ ['John Smith',14,42],['Gary',12,41],['Mark Davis',18,39],['Steve Allen',16,38],
+ ['Lee Carter',20,36],['Paul Wright',15,35],['Chris Baker',22,34],['Dan Morris',17,33],
+ ['Nick Howard',24,32],['Matt Jones',19,31]
+];
+function show(id){
+ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.nav===id));
+ if(id==='score') renderScore(); if(id==='leader') renderLeader();
+ window.scrollTo(0,0);
+}
+function toast(t){let e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
+function toggleMenu(){toast('NLGS menu ready for member/admin options')}
+function renderScore(){
+ document.getElementById('holeTitle').textContent='Hole '+currentHole;
+ document.getElementById('holeInfo').textContent='Par '+holes[currentHole-1][0]+' • SI '+holes[currentHole-1][1];
+ document.getElementById('holeNum').textContent=currentHole+' / 18';
+ document.getElementById('scoreInput').value=scores[currentHole]||'';
+ const g=document.getElementById('holeGrid');g.innerHTML='';
+ for(let i=1;i<=18;i++){let b=document.createElement('button');b.className='holebtn';b.textContent=i;b.onclick=()=>{currentHole=i;renderScore()};if(scores[i])b.style.background='#e8f2ed';g.appendChild(b)}
+ let total=0;Object.values(scores).forEach(v=>total+=Number(v)||0);document.getElementById('roundTotal').textContent=total+' strokes';
+}
+function saveScore(){
+ let v=Number(document.getElementById('scoreInput').value);if(!v||v<1){toast('Enter a valid score');return}
+ scores[currentHole]=v;localStorage.setItem('nlgsScores',JSON.stringify(scores));toast('Hole '+currentHole+' saved');
+ if(currentHole<18){currentHole++;renderScore()}else{toast('Round complete');renderScore()}
+}
+function stableford(score,par,shots){
+ let net=score-shots; let pts=net<=par-2?4:net===par-1?3:net===par?2:net===par+1?1:0; return pts;
+}
+function renderLeader(){
+ const body=document.getElementById('leaderBody');body.innerHTML='';
+ players.forEach((p,i)=>{let tr=document.createElement('tr');tr.innerHTML='<td>'+ (i+1) +'</td><td style="text-align:left">'+p[0]+'</td><td>'+p[1]+'</td><td><b>'+p[2]+'</b></td>';body.appendChild(tr)})
+}
+renderLeader();renderScore();
+
+</script>
+<script>
+// Replace placeholder admin behavior with role-aware messaging.
+(function(){const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');if(m) openApp(m);})();
+</script>
+<script>
+// NLGS v7 — member selector and mobile-friendly player handicap layout
+let nlgsFriendlyMembers=[];
+let friendlyPlayerCount=4;
+function setFriendlyPlayerCount(count){
+  count=Math.max(1,Math.min(4,Number(count)||4));
+  friendlyPlayerCount=count;
+  for(let i=1;i<=4;i++){
+    const b=document.getElementById('fpc'+i);
+    if(b)b.classList.toggle('on',i===count);
+    const card=document.querySelector('#friendlyPlayerCards .player-card:nth-child('+i+')');
+    if(card)card.style.display=i<=count?'block':'none';
+  }
+  const heading=document.getElementById('friendlyPlayersHeading');
+  if(heading)heading.textContent='Players — '+count+' Ball';
+}
+function buildFriendlyPlayerCards(){
+  const wrap=document.getElementById('friendlyPlayerCards'); if(!wrap)return;
+  wrap.innerHTML='';
+  for(let i=1;i<=4;i++){
+    const card=document.createElement('div'); card.className='player-card';
+    card.innerHTML=`
+      <div class="player-title">Player ${i}</div>
+      <select id="friendlyM${i}" class="member-select" onchange="friendlyMemberChanged(${i})">
+        <option value="">Choose NLGS member…</option>
+        <option value="__guest__">Guest / non-member</option>
+      </select>
+      <div id="friendlyMemberInfo${i}" class="member-info" style="display:none">
+        <div class="row"><span class="small">MEMBER</span><b id="friendlyMemberName${i}">—</b></div>
+        <div class="row" style="margin-top:4px"><span class="small">HANDICAP INDEX</span><b id="friendlyMemberHcp${i}">—</b></div>
+      </div>
+      <div id="friendlyGuest${i}" class="guest-fields" style="display:none">
+        <div class="player-grid">
+          <input id="friendlyP${i}" class="input compact-input" placeholder="Guest name">
+          <input id="friendlyH${i}" class="input compact-input" type="number" step="0.1" min="-10" max="54" placeholder="Handicap Index">
+        </div>
+      </div>
+      <div class="override-wrap">
+        <label for="friendlyO${i}">PLAYING HANDICAP OVERRIDE — optional</label>
+        <input id="friendlyO${i}" class="input compact-input" type="number" min="-10" max="54" placeholder="Leave blank to calculate automatically">
+      </div>
+      <div class="small" id="friendlyCalc${i}" style="margin-top:6px">Course HCP — • Playing HCP —</div>`;
+    wrap.appendChild(card);
+  }
+  populateFriendlyMemberSelects();
+  setFriendlyPlayerCount(friendlyPlayerCount);
+}
+function populateFriendlyMemberSelects(){
+  for(let i=1;i<=4;i++){
+    const sel=document.getElementById('friendlyM'+i); if(!sel)continue;
+    const current=sel.value;
+    sel.innerHTML='<option value="">Choose NLGS member…</option>';
+    nlgsFriendlyMembers.forEach(m=>{
+      const o=document.createElement('option'); o.value=m.id; o.textContent=m.full_name; sel.appendChild(o);
+    });
+    const g=document.createElement('option'); g.value='__guest__'; g.textContent='Guest / non-member'; sel.appendChild(g);
+    if(current)sel.value=current;
+  }
+}
+async function loadFriendlyMembers(){
+  buildFriendlyPlayerCards();
+  try{
+    const {data,error}=await sb.rpc('list_members');
+    if(error)throw error;
+    nlgsFriendlyMembers=(data||[]).map(m=>({id:m.id,full_name:m.full_name,handicap:Number(m.handicap)}));
+    populateFriendlyMemberSelects();
+  }catch(e){
+    nlgsFriendlyMembers=[]; populateFriendlyMemberSelects();
+    toast('Member list is not connected yet — guests can still be added');
+  }
+}
+function friendlyMemberChanged(i){
+  const sel=document.getElementById('friendlyM'+i); if(!sel)return;
+  const member=nlgsFriendlyMembers.find(m=>String(m.id)===String(sel.value));
+  const info=document.getElementById('friendlyMemberInfo'+i), guest=document.getElementById('friendlyGuest'+i);
+  const p=document.getElementById('friendlyP'+i), h=document.getElementById('friendlyH'+i);
+  if(member){
+    info.style.display='block'; guest.style.display='none';
+    document.getElementById('friendlyMemberName'+i).textContent=member.full_name;
+    document.getElementById('friendlyMemberHcp'+i).textContent=member.handicap;
+    if(p)p.value=member.full_name; if(h)h.value=member.handicap;
+  }else if(sel.value==='__guest__'){
+    info.style.display='none'; guest.style.display='block';
+    if(p)p.value=''; if(h)h.value='';
+  }else{
+    info.style.display='none'; guest.style.display='none';
+    if(p)p.value=''; if(h)h.value='';
+  }
+  refreshFriendlyHandicaps();
+}
+function getFriendlyPlayerInput(i){
+  const sel=document.getElementById('friendlyM'+i);
+  const member=nlgsFriendlyMembers.find(m=>String(m.id)===String(sel?.value));
+  if(member)return {name:member.full_name,index:member.handicap,memberId:member.id};
+  if(sel?.value==='__guest__'){
+    return {name:document.getElementById('friendlyP'+i)?.value.trim()||'',index:Number(document.getElementById('friendlyH'+i)?.value),memberId:null};
+  }
+  return {name:'',index:NaN,memberId:null};
+}
+function refreshFriendlyHandicaps(){
+  for(let i=1;i<=4;i++){
+    const x=getFriendlyPlayerInput(i); const calc=calculateFriendlyHandicap(x.index);
+    const override=document.getElementById('friendlyO'+i)?.value;
+    const el=document.getElementById('friendlyCalc'+i); if(!el)continue;
+    if(!x.name || !calc){el.textContent='Course HCP — • Playing HCP —';continue}
+    const ph=override!=='' ? Number(override) : calc.playingHcp;
+    el.textContent='Handicap Index '+(Number.isFinite(idx)?Number(idx).toFixed(1):'—')+' • Course HCP '+calc.courseHcp+' • Playing HCP '+ph+(override!==''?' (manual override)':'');
+  }
+}
+function startFriendlyRound(){
+  const inputs=[];
+  for(let i=1;i<=4;i++){
+    const x=getFriendlyPlayerInput(i);
+    if(!x.name){toast('Please select or enter all 4 players');return}
+    if(!Number.isFinite(x.index)){toast('Please enter a valid handicap for all 4 players');return}
+    inputs.push(x);
+  }
+  if(new Set(inputs.map(x=>x.name.toLowerCase())).size!==4){toast('Each player must be different');return}
+  const playerData=inputs.map((x,i)=>{
+    const calc=calculateFriendlyHandicap(x.index); if(!calc)return null;
+    const ov=document.getElementById('friendlyO'+(i+1)).value;
+    const ph=ov!==''?Number(ov):calc.playingHcp;
+    return {name:x.name,memberId:x.memberId,handicapIndex:x.index,courseHandicap:calc.courseHcp,playingHandicap:ph,override:ov!==''};
+  });
+  if(playerData.some(x=>!x)){toast('Enter valid handicaps for all selected players');return}
+  const players=inputs.map(x=>x.name);
+  const selectedCourse=nlgsCourses.find(c=>c.id===document.getElementById('friendlyCourse').value);
+  if(!selectedCourse){toast('Please choose a golf course');return}
+  friendlyRound={course:selectedCourse.name,courseId:selectedCourse.id,tee:selectedFriendlyTee?.tee_name||'Yellow',teeId:selectedFriendlyTee?.id||null,yards:selectedFriendlyTee?.yards||null,tees:selectedFriendlyTee?.tee_name||'Yellow',date:document.getElementById('friendlyDate').value||friendlyToday(),format:friendlyFormat,allowance:friendlyAllowance,courseRating:Number(document.getElementById('friendlyCR').value),slope:Number(document.getElementById('friendlySlope').value),par:Number(document.getElementById('friendlyPar').value),players,playerData,scores:{},currentPlayer:0,currentHole:1};
+  players.forEach(p=>friendlyRound.scores[p]={});
+  sessionStorage.setItem('nlgsFriendlyRound',JSON.stringify(friendlyRound)); show('friendlyScore'); renderFriendlyScore();
+}
+const nlgsOldShow=window.show;
+window.show=function(id){nlgsOldShow(id); if(id==='friendly')loadFriendlyMembers();};
+
+setTimeout(()=>{if(document.getElementById('friendlyPlayerCards'))buildFriendlyPlayerCards();},50);
+
+let nlgsCourses=[];
+let nlgsTees=[];
+let selectedFriendlyTee=null;
+async function loadFriendlyCourses(){
+  const sel=document.getElementById('friendlyCourse');
+  if(!sel) return;
+  try{
+    const {data,error}=await sb.rpc('list_courses_for_game');
+    if(error) throw error;
+    nlgsCourses=data||[];
+    sel.innerHTML='<option value="">Choose a golf course…</option>';
+    nlgsCourses.forEach(c=>{
+      const o=document.createElement('option');
+      o.value=c.id;
+      o.textContent=c.name;
+      sel.appendChild(o);
+    });
+    const preferred=nlgsCourses.find(c=>c.name==='Royal Cromer Golf Club') || nlgsCourses[0];
+    if(preferred){ sel.value=preferred.id; await applySelectedCourse(); }
+  }catch(e){
+    console.error('Course load failed',e);
+    sel.innerHTML='<option value="">Unable to load courses</option>';
+    toast('Course list could not be loaded');
+  }
+}
+async function loadFriendlyTees(courseId){
+  const teeSel=document.getElementById('friendlyTee');
+  if(!teeSel) return;
+  teeSel.innerHTML='<option value="">Loading tees…</option>';
+  try{
+    const {data,error}=await sb.rpc('list_course_tees_for_game',{p_course_id:courseId});
+    if(error) throw error;
+    nlgsTees=data||[];
+    if(!nlgsTees.length){
+      teeSel.innerHTML='<option value="">No tee data available</option>';
+      selectedFriendlyTee=null;
+      return;
+    }
+    teeSel.innerHTML='';
+    nlgsTees.forEach(t=>{
+      const o=document.createElement('option');
+      o.value=t.id;
+      o.textContent=t.tee_name+(t.yards?' — '+t.yards.toLocaleString()+' yds':'');
+      teeSel.appendChild(o);
+    });
+    const preferred=nlgsTees.find(t=>t.tee_name.toLowerCase()==='yellow') || nlgsTees.find(t=>t.is_default) || nlgsTees[0];
+    teeSel.value=preferred.id;
+    applySelectedTee();
+  }catch(e){
+    console.error('Tee load failed',e);
+    teeSel.innerHTML='<option value="">Unable to load tees</option>';
+    selectedFriendlyTee=null;
+    toast('Tee data could not be loaded');
+  }
+}
+async function applySelectedCourse(){
+  const sel=document.getElementById('friendlyCourse');
+  const c=nlgsCourses.find(x=>x.id===sel?.value);
+  if(!c) return;
+  document.getElementById('friendlyCourseTitle').textContent=c.name;
+  await loadFriendlyTees(c.id);
+}
+function applySelectedTee(){
+  const teeSel=document.getElementById('friendlyTee');
+  selectedFriendlyTee=nlgsTees.find(t=>t.id===teeSel?.value) || null;
+  if(!selectedFriendlyTee) return;
+  document.getElementById('friendlyCR').value=selectedFriendlyTee.course_rating;
+  document.getElementById('friendlySlope').value=selectedFriendlyTee.slope_rating;
+  document.getElementById('friendlyPar').value=selectedFriendlyTee.par;
+  document.getElementById('friendlyCourseTitle').textContent=(document.getElementById('friendlyCourse')?.selectedOptions?.[0]?.textContent||'Round')+' • '+selectedFriendlyTee.tee_name;
+  const info=document.getElementById('friendlyTeeInfo');
+  if(info) info.textContent=selectedFriendlyTee.tee_name+' tees • '+selectedFriendlyTee.par+' par • CR '+selectedFriendlyTee.course_rating+' • Slope '+selectedFriendlyTee.slope_rating+(selectedFriendlyTee.yards?' • '+selectedFriendlyTee.yards.toLocaleString()+' yards':'');
+  refreshFriendlyHandicaps();
+}
+let nlgsFriendlyDataLoaded=false;
+let nlgsFriendlyLoading=false;
+
+async function ensureFriendlyDataLoaded(){
+  const courseSel=document.getElementById('friendlyCourse');
+  if(!courseSel || nlgsFriendlyLoading) return;
+  if(nlgsFriendlyDataLoaded && nlgsCourses.length) return;
+  nlgsFriendlyLoading=true;
+  try{
+    await loadFriendlyCourses();
+    nlgsFriendlyDataLoaded=nlgsCourses.length>0;
+  }finally{
+    nlgsFriendlyLoading=false;
+  }
+}
+
+const nlgsOldLoadFriendlySetup2=window.loadFriendlySetup;
+window.loadFriendlySetup=async function(){
+  if(nlgsOldLoadFriendlySetup2) nlgsOldLoadFriendlySetup2();
+  buildFriendlyPlayerCards();
+  await ensureFriendlyDataLoaded();
+};
+
+// Make sure Friendly Game loads its course/tee data whenever the screen is opened,
+// including when a member is already logged in and the browser restores the session.
+const nlgsOriginalShowFinal=window.show;
+window.show=async function(id){
+  nlgsOriginalShowFinal(id);
+  if(id==='friendly'){
+    buildFriendlyPlayerCards();
+    await ensureFriendlyDataLoaded();
+  }
+};
+
+// Also initialise once the page has fully loaded.
+window.addEventListener('load',()=>{
+  const member=sessionStorage.getItem('nlgsMember');
+  if(member) setTimeout(()=>ensureFriendlyDataLoaded(),150);
+});
+
+</script>
+
+<script>
+// NLGS v13 — Dynamic course scorecard / hole data
+let nlgsFriendlyHoles=[];
+
+async function loadFriendlyHoles(courseId){
+  try{
+    const {data,error}=await sb.rpc('list_course_holes_for_game',{p_course_id:courseId});
+    if(error) throw error;
+    const rows=data||[];
+    nlgsFriendlyHoles=rows
+      .map(h=>({hole_no:Number(h.hole_no),par:Number(h.par),stroke_index:Number(h.stroke_index),yards:h.yards!=null?Number(h.yards):null}))
+      .filter(h=>h.hole_no>=1&&h.hole_no<=18)
+      .sort((a,b)=>a.hole_no-b.hole_no);
+    if(nlgsFriendlyHoles.length!==18) throw new Error('Course hole data incomplete');
+    return nlgsFriendlyHoles;
+  }catch(e){
+    console.error('Hole data load failed',e);
+    nlgsFriendlyHoles=[];
+    toast('Hole data could not be loaded');
+    return [];
+  }
+}
+
+function friendlyHoleData(r, holeNo){
+  const h=(r?.holeData||[]).find(x=>Number(x.hole_no)===Number(holeNo));
+  return h || {hole_no:holeNo,par:4,stroke_index:0,yards:null};
+}
+
+function friendlyPoints(score, par, shots){
+  const gross=Number(score)||0;
+  const target=Number(par)||0;
+  const allowance=Number(shots)||0;
+  if(gross<=0 || target<=0) return 0;
+  const net=gross-allowance;
+  if(net<=target-3) return 5;
+  if(net===target-2) return 4;
+  if(net===target-1) return 3;
+  if(net===target) return 2;
+  if(net===target+1) return 1;
+  return 0;
+}
+
+function friendlyShotsOnHole(playingHcp, strokeIndex){
+  const hcp=Number(playingHcp)||0;
+  const si=Number(strokeIndex)||0;
+  if(hcp<=0 || si<=0) return 0;
+  const base=Math.floor(hcp/18);
+  const remainder=hcp%18;
+  return base + (si<=remainder ? 1 : 0);
+}
+
+async function startFriendlyRound(){
+  const count=friendlyPlayerCount;
+  const inputs=[];
+  for(let i=1;i<=count;i++){
+    const x=getFriendlyPlayerInput(i);
+    if(!x.name){toast('Please select or enter all '+count+' players');return}
+    if(!Number.isFinite(x.index)){toast('Please enter a valid handicap for all '+count+' players');return}
+    inputs.push(x);
+  }
+  if(new Set(inputs.map(x=>x.name.toLowerCase())).size!==count){toast('Each player must be different');return}
+
+  const selectedCourse=nlgsCourses.find(c=>c.id===document.getElementById('friendlyCourse').value);
+  if(!selectedCourse){toast('Please choose a golf course');return}
+  if(!selectedFriendlyTee){toast('Please choose a tee');return}
+
+  const holeData=await loadFriendlyHoles(selectedCourse.id);
+  if(holeData.length!==18){
+    toast('This course does not have all 18 holes loaded yet');
+    return;
+  }
+
+  const playerData=inputs.map((x,i)=>{
+    const calc=calculateFriendlyHandicap(x.index); if(!calc)return null;
+    const ov=document.getElementById('friendlyO'+(i+1)).value;
+    const ph=ov!==''?Number(ov):calc.playingHcp;
+    return {name:x.name,memberId:x.memberId,handicapIndex:x.index,courseHandicap:calc.courseHcp,playingHandicap:ph,override:ov!==''};
+  });
+  if(playerData.some(x=>!x)){toast('Enter valid handicaps for all selected players');return}
+
+  const players=inputs.map(x=>x.name);
+  friendlyRound={
+    course:selectedCourse.name,
+    courseId:selectedCourse.id,
+    tee:selectedFriendlyTee.tee_name,
+    teeId:selectedFriendlyTee.id,
+    yards:selectedFriendlyTee.yards||null,
+    date:document.getElementById('friendlyDate').value||friendlyToday(),
+    format:friendlyFormat,
+    allowance:friendlyAllowance,
+    playerCount:count,
+    courseRating:Number(selectedFriendlyTee.course_rating),
+    slope:Number(selectedFriendlyTee.slope_rating),
+    par:Number(selectedFriendlyTee.par),
+    players,
+    playerData,
+    holeData,
+    scores:{},
+    currentPlayer:0,
+    currentHole:1
+  };
+  players.forEach(p=>friendlyRound.scores[p]={});
+  sessionStorage.setItem('nlgsFriendlyRound',JSON.stringify(friendlyRound));
+  show('friendlyScore');
+  renderFriendlyScore();
+}
+
+function renderFriendlyScore(){
+  const r=getFriendlyRound(); if(!r)return;
+  const player=r.players[r.currentPlayer]||r.players[0];
+  document.getElementById('friendlyCourseTitle').textContent=r.course+' • '+(r.tee||'Yellow');
+  document.getElementById('friendlyFormatPill').textContent=r.format;
+  document.getElementById('friendlyAllowancePill').textContent=r.allowance;
+  document.getElementById('friendlyPlayerName').textContent=player;
+  const h=friendlyHoleData(r,r.currentHole);
+  const shots=friendlyShotsOnHole((r.playerData?.[r.currentPlayer]||{}).playingHandicap,h.stroke_index);
+  document.getElementById('friendlyHoleTitle').textContent='Hole '+r.currentHole;
+  document.getElementById('friendlyHoleInfo').textContent='Par '+h.par+' • SI '+h.stroke_index+(shots>0?' • '+shots+' shot'+(shots===1?'':'s'):'');
+  document.getElementById('friendlyHoleNum').textContent=r.currentHole+' / 18';
+  document.getElementById('friendlyScoreInput').value=r.scores[player]?.[r.currentHole]||'';
+
+  const g=document.getElementById('friendlyHoleGrid'); g.innerHTML='';
+  for(let i=1;i<=18;i++){
+    const b=document.createElement('button'); b.className='holebtn'; b.textContent=i;
+    const hd=friendlyHoleData(r,i);
+    b.title='Par '+hd.par+' • SI '+hd.stroke_index+(hd.yards!=null?' • '+hd.yards+' yds':'');
+    b.onclick=()=>{r.currentHole=i;saveFriendlyState();renderFriendlyScore()};
+    if(r.scores[player]?.[i]) b.style.background='#e8f2ed';
+    g.appendChild(b);
+  }
+
+  const list=document.getElementById('friendlyPlayersList'); list.innerHTML='';
+  r.players.forEach((p,i)=>{
+    const div=document.createElement('div'); div.className='row';
+    const total=Object.values(r.scores[p]||{}).reduce((a,v)=>a+(Number(v)||0),0);
+    div.style.padding='8px 0';
+    div.style.borderBottom=i<r.players.length-1?'1px solid var(--line)':'0';
+    const pd=(r.playerData||[])[i]||{};
+    div.innerHTML='<span>'+p+(i===r.currentPlayer?' <span class="pill">CURRENT</span>':'')+'<br><span class="small">Handicap Index '+(pd.handicapIndex!=null?Number(pd.handicapIndex).toFixed(1):'—')+' • Course HCP '+(pd.courseHandicap??'—')+' • Playing HCP '+(pd.playingHandicap??'—')+'</span></span><b>'+total+' strokes</b>';
+    div.onclick=()=>{r.currentPlayer=i;r.currentHole=1;saveFriendlyState();renderFriendlyScore()};
+    list.appendChild(div);
+  });
+}
+
+function finishFriendlyRound(){
+  const r=getFriendlyRound(); if(!r)return;
+  document.getElementById('friendlySummaryCourse').textContent=r.course+' • '+(r.tee||'Yellow');
+  document.getElementById('friendlySummaryDetails').textContent=
+    new Date(r.date+'T12:00:00').toLocaleDateString('en-GB')+' • '+r.format+' • '+r.allowance+' handicap allowance'+(r.yards?' • '+Number(r.yards).toLocaleString()+' yards':'');
+  const mode=document.getElementById('friendlySummaryMode'); if(mode) mode.textContent=r.format||'Stableford';
+  const body=document.getElementById('friendlySummaryBody'); body.innerHTML='';
+  const results=r.players.map((p,pi)=>{
+    const sc=r.scores[p]||{}; let gross=0,pts=0,net=0,holesPlayed=0;
+    for(let i=1;i<=18;i++){
+      const s=Number(sc[i])||0; if(s>0) holesPlayed++;
+      const h=friendlyHoleData(r,i); const shots=friendlyShotsOnHole((r.playerData?.[pi]||{}).playingHandicap,h.stroke_index);
+      gross+=s; net+=s-shots;
+      pts+=friendlyPoints(s,h.par,shots);
+    }
+    return {p,gross,net,pts,pi,holesPlayed};
+  });
+  results.sort((a,b)=>r.format==='Stableford' ? (b.pts-a.pts || a.net-b.net) : (a.net-b.net || b.pts-a.pts));
+
+  const winner=results[0];
+  const winnerName=document.getElementById('friendlyWinnerName');
+  const winnerScore=document.getElementById('friendlyWinnerScore');
+  if(winnerName) winnerName.textContent=winner ? winner.p : '—';
+  if(winnerScore) winnerScore.textContent=winner ? (r.format==='Stableford' ? winner.pts+' Stableford points' : winner.net+' net') : '—';
+
+  results.forEach((x,i)=>{
+    const tr=document.createElement('tr');
+    const pd=(r.playerData||[])[x.pi]||{};
+    tr.innerHTML='<td><b>'+(i+1)+'</b></td><td style="text-align:left"><b>'+x.p+'</b><br><span class="small">HI '+(pd.handicapIndex!=null?Number(pd.handicapIndex).toFixed(1):'—')+' • PH '+(pd.playingHandicap??'—')+'</span></td><td>'+x.gross+'</td><td>'+x.net+'</td><td><b>'+x.pts+'</b></td>';
+    body.appendChild(tr);
+  });
+
+  const cards=document.getElementById('friendlySummaryPlayerCards');
+  if(cards){
+    cards.innerHTML='';
+    results.forEach((x,i)=>{
+      const pd=(r.playerData||[])[x.pi]||{};
+      const div=document.createElement('div');
+      div.style.padding='12px 0';
+      div.style.borderBottom=i<results.length-1?'1px solid var(--line)':'0';
+      div.innerHTML='<div class="row"><span><b>'+(i===0?'🏆 ':'')+x.p+'</b><br><span class="small">Handicap Index '+(pd.handicapIndex!=null?Number(pd.handicapIndex).toFixed(1):'—')+' • Course HCP '+(pd.courseHandicap??'—')+' • Playing HCP '+(pd.playingHandicap??'—')+' • '+x.holesPlayed+'/18 holes</span></span><b style="text-align:right">'+x.gross+' gross<br><span class="small">'+x.net+' net • '+x.pts+' pts</span></b></div>';
+      cards.appendChild(div);
+    });
+  }
+
+  sessionStorage.setItem('nlgsLastFriendlyRound',JSON.stringify(r));
+  show('friendlySummary');
+}
+</script>
+
+
+<script>
+// Persist the current Friendly Game state safely.
+function saveFriendlyState(){
+  try{
+    sessionStorage.setItem('nlgsFriendlyRound', JSON.stringify(friendlyRound));
+  }catch(e){
+    console.error('Could not save friendly round state',e);
+    toast('Could not save the round');
+  }
+}
+
+// NLGS v17 — final four-player/variable-player scorecard render fix
+// This override removes the old single-player renderer that was hiding the score inputs.
+function renderFriendlyScore(){
+  const r=getFriendlyRound();
+  if(!r || !Array.isArray(r.players) || !r.players.length) return;
+
+  document.getElementById('friendlyCourseTitle').textContent=(r.course||'Round')+' • '+(r.tee||'Yellow');
+  document.getElementById('friendlyFormatPill').textContent=r.format||'Stableford';
+  document.getElementById('friendlyAllowancePill').textContent=r.allowance||'100%';
+
+  const h=friendlyHoleData(r,r.currentHole);
+  document.getElementById('friendlyHoleTitle').textContent='Hole '+r.currentHole;
+  document.getElementById('friendlyHoleInfo').textContent='Par '+h.par+' • SI '+h.stroke_index+(h.yards!=null?' • '+Number(h.yards).toLocaleString()+' yds':'');
+  document.getElementById('friendlyHoleNum').textContent=r.currentHole+' / 18';
+
+  const hp=document.getElementById('friendlyHolePlayers');
+  hp.innerHTML='';
+  r.players.forEach((p,i)=>{
+    const pd=(r.playerData||[])[i]||{};
+    const shots=friendlyShotsOnHole(pd.playingHandicap,h.stroke_index);
+    const saved=(r.scores[p]||{})[r.currentHole];
+    const points=saved!==undefined && saved!=='' ? friendlyPoints(Number(saved),h.par,shots) : null;
+    const row=document.createElement('div');
+    row.style.padding='12px 0';
+    row.style.borderBottom=i<r.players.length-1?'1px solid var(--line)':'0';
+    row.innerHTML=`
+      <div class="row">
+        <div style="flex:1;min-width:0">
+          <b>${p}</b>
+          <div class="small">Playing HCP ${pd.playingHandicap??'—'} • ${shots} shot${shots===1?'':'s'}${points!==null?' • '+points+' point'+(points===1?'':'s'):''}</div>
+        </div>
+        <input class="input friendly-hole-score" data-player="${i}" type="number" min="1" max="15" inputmode="numeric" placeholder="Score" value="${saved??''}" style="width:105px;text-align:center;margin:0">
+      </div>`;
+    hp.appendChild(row);
+  });
+
+  const g=document.getElementById('friendlyHoleGrid');
+  g.innerHTML='';
+  for(let i=1;i<=18;i++){
+    const b=document.createElement('button');
+    b.className='holebtn';
+    b.textContent=i;
+    const hd=friendlyHoleData(r,i);
+    b.title='Par '+hd.par+' • SI '+hd.stroke_index+(hd.yards!=null?' • '+hd.yards+' yds':'');
+    b.onclick=()=>{r.currentHole=i;saveFriendlyState();renderFriendlyScore();};
+    const any=r.players.some(p=>Object.prototype.hasOwnProperty.call(r.scores[p]||{},i));
+    if(any) b.style.background='#e8f2ed';
+    g.appendChild(b);
+  }
+
+  // Render the course-specific scorecard using the hole data loaded from Supabase.
+  const scBody=document.getElementById('friendlyCourseScorecardBody');
+  if(scBody){
+    scBody.innerHTML='';
+    let outY=0,inY=0;
+    for(let hole=1;hole<=18;hole++){
+      const hd=friendlyHoleData(r,hole);
+      const tr=document.createElement('tr');
+      const isCurrent=hole===Number(r.currentHole);
+      if(isCurrent) tr.style.background='#eef7f2';
+      tr.innerHTML='<td><b>'+hole+'</b></td><td>'+(hd.yards!=null?Number(hd.yards).toLocaleString():'—')+'</td><td>'+hd.par+'</td><td>'+hd.stroke_index+'</td>';
+      scBody.appendChild(tr);
+      if(hd.yards!=null){ if(hole<=9) outY+=Number(hd.yards); else inY+=Number(hd.yards); }
+    }
+    const total=document.getElementById('friendlyCourseScorecardTotal');
+    if(total){
+      let totalPar=0;
+      for(let hole=1;hole<=18;hole++) totalPar+=Number(friendlyHoleData(r,hole).par)||0;
+      total.textContent=(outY+inY).toLocaleString()+' yds • Par '+totalPar;
+    }
+  }
+
+  const list=document.getElementById('friendlyPlayersList');
+  list.innerHTML='';
+  r.players.forEach((p,i)=>{
+    const div=document.createElement('div');
+    div.className='row';
+    div.style.padding='9px 0';
+    div.style.borderBottom=i<r.players.length-1?'1px solid var(--line)':'0';
+    const pd=(r.playerData||[])[i]||{};
+    const sc=r.scores[p]||{};
+    const holesPlayed=Object.keys(sc).filter(k=>Number(sc[k])>0).length;
+    let gross=0, pts=0;
+    for(let hole=1;hole<=18;hole++){
+      const s=Number(sc[hole])||0;
+      if(!s) continue;
+      const hd=friendlyHoleData(r,hole);
+      const shots=friendlyShotsOnHole(pd.playingHandicap,hd.stroke_index);
+      gross+=s;
+      pts+=friendlyPoints(s,hd.par,shots);
+    }
+    div.innerHTML=`<span style="flex:1"><b>${p}</b><br><span class="small">Handicap Index ${pd.handicapIndex!=null?Number(pd.handicapIndex).toFixed(1):'—'} • Course HCP ${pd.courseHandicap??'—'} • Playing HCP ${pd.playingHandicap??'—'} • ${holesPlayed}/18 holes</span></span><b style="text-align:right">${gross} strokes<br><span class="small">${pts} pts</span></b>`;
+    list.appendChild(div);
+  });
+}
+
+function saveFriendlyScore(){
+  const r=getFriendlyRound(); if(!r)return;
+  const inputs=[...document.querySelectorAll('.friendly-hole-score')];
+  let savedAny=false;
+  inputs.forEach(input=>{
+    const i=Number(input.dataset.player);
+    const p=r.players[i];
+    if(!p) return;
+    const raw=input.value.trim();
+    if(raw==='') return;
+    const v=Number(raw);
+    if(!Number.isInteger(v)||v<1||v>15) return;
+    r.scores[p]=r.scores[p]||{};
+    r.scores[p][r.currentHole]=v;
+    savedAny=true;
+  });
+  if(!savedAny){toast('Enter at least one player score');return;}
+  saveFriendlyState();
+  toast('Hole '+r.currentHole+' saved');
+  if(r.currentHole<18){r.currentHole++;saveFriendlyState();}
+  renderFriendlyScore();
+}
+</script>
+
+
+<!-- NLGS v20 — course-specific handicap/Stableford hardening patch -->
+<script>
+// Recalculate the visible handicap information whenever the selected allowance/tee changes.
+// This version also safely handles the 1–4 player setup without changing the saved round format.
+function refreshFriendlyHandicaps(){
+  for(let i=1;i<=4;i++){
+    const idx=Number(document.getElementById('friendlyH'+i)?.value);
+    const calc=calculateFriendlyHandicap(idx);
+    const override=document.getElementById('friendlyO'+i)?.value ?? '';
+    const el=document.getElementById('friendlyCalc'+i);
+    if(!el) continue;
+    if(!calc){
+      el.textContent='Course HCP — • Playing HCP —';
+      continue;
+    }
+    const ph=override!=='' ? Number(override) : calc.playingHcp;
+    el.textContent='Handicap Index '+(Number.isFinite(idx)?idx.toFixed(1):'—')+' • Course HCP '+calc.courseHcp+' • Playing HCP '+ph+(override!==''?' (manual override)':'');
+  }
+}
+
+// Ensure restored rounds continue to use the course-specific hole data from Supabase.
+const nlgsPreviousRenderFriendlyScore=window.renderFriendlyScore;
+window.renderFriendlyScore=async function(){
+  const r=getFriendlyRound();
+  if(!r || !Array.isArray(r.players) || !r.players.length) return;
+  if(!Array.isArray(r.holeData) || r.holeData.length!==18){
+    if(r.courseId){
+      const data=await loadFriendlyHoles(r.courseId);
+      if(data.length===18){
+        r.holeData=data;
+        saveFriendlyState();
+      }
+    }
+  }
+  if(nlgsPreviousRenderFriendlyScore) nlgsPreviousRenderFriendlyScore();
+};
+
+// Keep the final results tied to the same course-specific hole data and handicap shots.
+const nlgsPreviousFinishFriendlyRound=window.finishFriendlyRound;
+window.finishFriendlyRound=function(){
+  const r=getFriendlyRound();
+  if(!r || !Array.isArray(r.holeData) || r.holeData.length!==18){
+    toast('Course scorecard data is not ready yet');
+    return;
+  }
+  if(nlgsPreviousFinishFriendlyRound) nlgsPreviousFinishFriendlyRound();
+};
+</script>
+
+<script>
+// NLGS — stable build Competition Builder replacement
+// Keep the proven NLGS build intact; only replace the Competition Builder logic.
+let competitionFormat='Stableford';
+let competitionAllowance='100%';
+let competitionCourses=[];
+let competitionTees=[];
+let competitionMembers=[];
+
+const NLGS_SUPABASE_URL='https://ifjsjksskaknuqjboxsl.supabase.co';
+const NLGS_SUPABASE_KEY='sb_publishable_sM00u7HKZ06m9XFFG2pBug_ypzkbnZp';
+
+async function competitionRpc(name, body={}){
+  // TEST BUILD: use the same direct REST call proven to work in the isolated test.
+  // No Supabase JS client, no fallback, no waiting.
+  try{
+    const r=await fetch(NLGS_SUPABASE_URL+'/rest/v1/rpc/'+encodeURIComponent(name),{
+      method:'POST',
+      headers:{
+        'apikey':NLGS_SUPABASE_KEY,
+        'Authorization':'Bearer '+NLGS_SUPABASE_KEY,
+        'Content-Type':'application/json',
+        'Accept':'application/json'
+      },
+      body:JSON.stringify(body||{})
+    });
+    const text=await r.text();
+    let data=null;
+    try{data=text?JSON.parse(text):null;}catch(_){data=text;}
+    if(!r.ok){
+      return {data:null,error:new Error('HTTP '+r.status+': '+(typeof data==='string'?data:JSON.stringify(data)))};
+    }
+    return {data,error:null};
+  }catch(e){
+    return {data:null,error:new Error(e.message||'Database request failed')};
+  }
+}
+
+function competitionError(prefix,e){
+  console.error(prefix,e);
+  return (e && e.message) ? e.message : String(e||'Unknown error');
+}
+
+function openCompetitionBuilder(){
+  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+  if(!m || m.role!=='admin'){toast('Only the main administrator can create competitions');return;}
+  show('competitionBuilder');
+  setTimeout(()=>loadCompetitionBuilder(),0);
+}
+
+function setCompetitionFormat(v){
+  competitionFormat=v;
+  ['Stableford','Medal','Match Play','Season League'].forEach(x=>{
+    const id=x==='Stableford'?'cfStableford':x==='Medal'?'cfMedal':x==='Match Play'?'cfMatch':'cfLeague';
+    const b=document.getElementById(id); if(b)b.classList.toggle('on',x===v);
+  });
+}
+function setCompetitionAllowance(v){
+  competitionAllowance=v;
+  ['100%','85%','75%'].forEach(x=>{const b=document.getElementById('ca'+x.replace('%',''));if(b)b.classList.toggle('on',x===v);});
+}
+
+async function loadCompetitionBuilder(){
+  const courseSel=document.getElementById('compCourse');
+  const teeSel=document.getElementById('compTee');
+  if(!courseSel || !teeSel)return;
+  const date=document.getElementById('compDate');
+  if(date && !date.value)date.value=new Date().toISOString().slice(0,10);
+
+  courseSel.innerHTML='<option value="">Loading courses…</option>';
+  teeSel.innerHTML='<option value="">Waiting for course…</option>';
+  const r=await competitionRpc('list_courses_for_game');
+  if(r.error){
+    courseSel.innerHTML='<option value="">Unable to load courses</option>';
+    teeSel.innerHTML='<option value="">Unable to load tees</option>';
+    const msg='Courses: '+competitionError('Competition course load failed',r.error);
+    toast(msg.slice(0,110));
+    const info=document.getElementById('compTeeInfo');if(info)info.textContent=msg;
+    return;
+  }
+  competitionCourses=r.data||[];
+  courseSel.innerHTML='<option value="">Choose a golf course…</option>';
+  competitionCourses.forEach(c=>{
+    const o=document.createElement('option');o.value=c.id;o.textContent=c.name;courseSel.appendChild(o);
+  });
+  const preferred=competitionCourses.find(c=>c.name==='Royal Cromer Golf Club')||competitionCourses[0];
+  if(preferred){
+    courseSel.value=preferred.id;
+    await applyCompetitionCourse();
+  }else{
+    teeSel.innerHTML='<option value="">No tee data available</option>';
+  }
+  await loadCompetitionMembers();
+}
+
+async function applyCompetitionCourse(){
+  const courseId=document.getElementById('compCourse')?.value;
+  const teeSel=document.getElementById('compTee');
+  if(!courseId||!teeSel)return;
+  teeSel.innerHTML='<option value="">Loading tees…</option>';
+  const r=await competitionRpc('list_course_tees_for_game',{p_course_id:courseId});
+  if(r.error){
+    teeSel.innerHTML='<option value="">Unable to load tees</option>';
+    const msg='Tees: '+competitionError('Competition tee load failed',r.error);
+    const info=document.getElementById('compTeeInfo');if(info)info.textContent=msg;
+    toast(msg.slice(0,110));
+    return;
+  }
+  competitionTees=r.data||[];
+  if(!competitionTees.length){teeSel.innerHTML='<option value="">No tee data available</option>';return;}
+  teeSel.innerHTML='<option value="">Choose tees…</option>';
+  competitionTees.forEach(t=>{
+    const o=document.createElement('option');o.value=t.id;o.textContent=t.tee_name+(t.yards?' — '+Number(t.yards).toLocaleString()+' yds':'');teeSel.appendChild(o);
+  });
+  const preferred=competitionTees.find(t=>String(t.tee_name).toLowerCase()==='yellow')||competitionTees.find(t=>t.is_default)||competitionTees[0];
+  if(preferred)teeSel.value=preferred.id;
+  updateCompetitionTeeInfo();
+  teeSel.onchange=updateCompetitionTeeInfo;
+}
+function updateCompetitionTeeInfo(){
+  const t=competitionTees.find(x=>x.id===document.getElementById('compTee')?.value);
+  const el=document.getElementById('compTeeInfo');if(!el)return;
+  el.textContent=t?(t.tee_name+' tees • '+t.par+' par • CR '+t.course_rating+' • Slope '+t.slope_rating+(t.yards?' • '+Number(t.yards).toLocaleString()+' yards':'')):'Select a tee.';
+}
+
+async function loadCompetitionMembers(){
+  const wrap=document.getElementById('compPlayersList');if(!wrap)return;
+  wrap.innerHTML='<div class="small">Loading members…</div>';
+  const r=await competitionRpc('list_members');
+  if(r.error){wrap.innerHTML='<div class="small">Member list could not be loaded.</div>';toast('Members: '+competitionError('Competition member load failed',r.error).slice(0,90));return;}
+  competitionMembers=(r.data||[]).map(m=>({id:m.id,name:m.full_name,hcp:Number(m.handicap)}));
+  wrap.innerHTML='';
+  competitionMembers.forEach(m=>{
+    const row=document.createElement('label');
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer';
+    row.innerHTML='<input type="checkbox" class="comp-player" value="'+m.id+'" style="width:20px;height:20px"><div style="flex:1"><b>'+m.name+'</b><div class="small">Handicap Index '+(Number.isFinite(m.hcp)?m.hcp.toFixed(1):'—')+'</div></div>';
+    wrap.appendChild(row);
+  });
+  wrap.querySelectorAll('.comp-player').forEach(x=>x.addEventListener('change',updateCompetitionPlayerCount));
+  updateCompetitionPlayerCount();
+}
+function updateCompetitionPlayerCount(){
+  const n=document.querySelectorAll('.comp-player:checked').length;
+  const el=document.getElementById('compPlayerCount');if(el)el.textContent=n+' selected';
+}
+
+async function createCompetitionDraft(){
+  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+  if(!m || m.role!=='admin'){toast('Only the main administrator can create competitions');return;}
+  const name=document.getElementById('compName')?.value.trim();
+  const date=document.getElementById('compDate')?.value;
+  const courseId=document.getElementById('compCourse')?.value;
+  const teeId=document.getElementById('compTee')?.value;
+  const selected=[...document.querySelectorAll('.comp-player:checked')].map(x=>x.value);
+  if(!name){toast('Enter a competition name');return;} if(!date){toast('Choose a competition date');return;} if(!courseId){toast('Choose a golf course');return;} if(!teeId){toast('Choose the tees');return;} if(!selected.length){toast('Select at least one player');return;}
+  const formatMap={'Stableford':'stableford','Medal':'medal','Match Play':'match_play','Season League':'season_league'};
+  const allowanceMap={'100%':'100','85%':'85','75%':'75'};
+  const format=formatMap[competitionFormat], allowance=allowanceMap[competitionAllowance];
+  if(!format||!allowance){toast('Competition settings are invalid');return;}
+  const btn=document.querySelector('#competitionBuilder .btn');if(btn){btn.disabled=true;btn.textContent='SAVING…';}
+  try{
+    const r=await competitionRpc('create_competition',{p_name:name,p_competition_date:date,p_course_id:courseId,p_tee_id:teeId,p_format:format,p_allowance:allowance,p_player_ids:selected});
+    if(r.error)throw r.error;
+    sessionStorage.removeItem('nlgsCompetitionDraft');toast('Competition created successfully');setTimeout(()=>show('admin'),600);
+  }catch(e){toast(competitionError('Competition save failed',e).slice(0,110));}
+  finally{if(btn){btn.disabled=false;btn.textContent='CREATE COMPETITION';}}
+}
+</script>
+
+
+<script>
+// NLGS v35 — Competition Builder guest saving
+(function(){
+  function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+  function guestRows(){return [...document.querySelectorAll('.comp-guest-row')];}
+  function refreshCount(){
+    const n=document.querySelectorAll('.comp-player:checked').length + guestRows().length;
+    const el=document.getElementById('compPlayerCount'); if(el) el.textContent=n+' selected';
+  }
+  function addGuestRow(){
+    const box=document.getElementById('compGuestsRows'); if(!box)return;
+    const row=document.createElement('div'); row.className='comp-guest-row player-card';
+    row.style.marginTop='8px';
+    row.innerHTML=`<div class="row"><b>Guest / non-member</b><button type="button" class="btn secondary comp-remove-guest" style="width:auto;padding:7px 10px;font-size:12px">REMOVE</button></div>
+      <div class="player-grid" style="margin-top:8px">
+        <input class="input compact-input comp-guest-name" placeholder="Guest name">
+        <input class="input compact-input comp-guest-hcp" type="number" step="0.1" min="-10" max="54" placeholder="Handicap Index">
+      </div>`;
+    box.appendChild(row);
+    row.querySelector('.comp-remove-guest').onclick=()=>{row.remove();refreshCount()};
+    row.querySelectorAll('input').forEach(x=>x.addEventListener('input',refreshCount));
+    refreshCount();
+  }
+  function ensureGuestUI(){
+    const host=document.getElementById('compGuestsBox'); if(!host || host.dataset.ready==='1')return;
+    host.dataset.ready='1';
+    host.innerHTML=`<div class="row"><div><b>Guests / non-members</b><div class="small" style="margin-top:3px">Guests do not need an NLGS account. Enter their name and Handicap Index.</div></div><button type="button" id="addCompGuest" class="btn secondary" style="width:auto;padding:9px 12px;font-size:12px">+ ADD GUEST</button></div><div id="compGuestsRows"></div>`;
+    document.getElementById('addCompGuest').onclick=addGuestRow;
+  }
+  const oldLoad=window.loadCompetitionMembers;
+  window.loadCompetitionMembers=async function(){
+    ensureGuestUI();
+    if(oldLoad) await oldLoad();
+    ensureGuestUI();
+    const list=document.getElementById('compPlayersList');
+    if(list) list.querySelectorAll('.comp-player').forEach(x=>x.addEventListener('change',refreshCount));
+    refreshCount();
+  };
+  const oldOpen=window.openCompetitionBuilder;
+  window.openCompetitionBuilder=function(){
+    if(oldOpen) oldOpen();
+    setTimeout(ensureGuestUI,50);
+  };
+  const oldCreate=window.createCompetitionDraft;
+  window.createCompetitionDraft=async function(){
+    const guestRowsNow=guestRows();
+    const guests=[];
+    for(const row of guestRowsNow){
+      const name=(row.querySelector('.comp-guest-name')?.value||'').trim();
+      const hcpText=(row.querySelector('.comp-guest-hcp')?.value||'').trim();
+      if(!name || hcpText===''){
+        toast('Enter a name and Handicap Index for every guest');
+        return;
+      }
+      const hcp=Number(hcpText);
+      if(!Number.isFinite(hcp) || hcp < -10 || hcp > 54){
+        toast('Guest Handicap Index must be between -10 and 54');
+        return;
+      }
+      guests.push({name,handicap:Number(hcp.toFixed(1))});
+    }
+    const selected=[...document.querySelectorAll('.comp-player:checked')];
+    if(!selected.length && !guests.length){toast('Select at least one member or guest');return;}
+    const btn=document.querySelector('#competitionBuilder .btn');
+    if(btn){btn.disabled=true;btn.textContent='SAVING…';}
+    try{
+      const name=document.getElementById('compName')?.value.trim();
+      const date=document.getElementById('compDate')?.value;
+      const courseId=document.getElementById('compCourse')?.value;
+      const teeId=document.getElementById('compTee')?.value;
+      if(!name){toast('Enter a competition name');return;} if(!date){toast('Choose a competition date');return;} if(!courseId){toast('Choose a golf course');return;} if(!teeId){toast('Choose the tees');return;}
+      const formatMap={'Stableford':'stableford','Medal':'medal','Match Play':'match_play','Season League':'season_league'};
+      const allowanceMap={'100%':'100','85%':'85','75%':'75'};
+      const format=formatMap[competitionFormat], allowance=allowanceMap[competitionAllowance];
+      if(!format||!allowance){toast('Competition settings are invalid');return;}
+      const r=await competitionRpc('create_competition_with_guests',{p_name:name,p_competition_date:date,p_course_id:courseId,p_tee_id:teeId,p_format:format,p_allowance:allowance,p_player_ids:selected.map(x=>x.value),p_guests:guests});
+      if(r.error)throw r.error;
+      sessionStorage.removeItem('nlgsCompetitionDraft');
+      toast('Competition created successfully');
+      setTimeout(()=>show('admin'),600);
+    }catch(e){toast(competitionError('Competition save failed',e).slice(0,110));}
+    finally{if(btn){btn.disabled=false;btn.textContent='CREATE COMPETITION';}}
+  };
+  document.addEventListener('DOMContentLoaded',ensureGuestUI);
+})();
+</script>
+</body></html>
