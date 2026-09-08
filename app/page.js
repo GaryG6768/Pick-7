@@ -17,7 +17,7 @@ export default function Home() {
   const [locked, setLocked] = useState(false);
   const [lockTime, setLockTime] = useState(null);
   const [countdown, setCountdown] = useState("");
-
+const [alerts, setAlerts] = useState([]);
   useEffect(() => {
     loadRound();
     checkUser();
