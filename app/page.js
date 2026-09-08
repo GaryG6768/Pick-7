@@ -91,7 +91,15 @@ const [alerts, setAlerts] = useState([]);
         setMessage("No round is currently open.");
         return;
       }
+      const { data: alertData, error: alertError } = await db
+        .from("fixture_change_alerts")
+        .select("id, message, created_at")
+        .eq("round_id", roundData.id)
+        .order("created_at", { ascending: false });
 
+      if (alertError) throw alertError;
+
+      setAlerts(alertData || []);
       const { data: links, error: linksError } = await db
         .from("round_fixtures")
         .select("fixture_number, fixture_id")
@@ -323,7 +331,16 @@ const [alerts, setAlerts] = useState([]);
         <h2>
           {round ? "Make Your 7 Picks" : "Pick 7"}
         </h2>
-
+        {alerts.length > 0 && (
+          <div className="notice">
+            <strong>⚠️ FIXTURE UPDATE</strong>
+            {alerts.map(alert => (
+              <div key={alert.id} style={{ marginTop: "6px" }}>
+                {alert.message}
+              </div>
+            ))}
+          </div>
+        )}
         {loading && (
           <p className="muted">
             Loading the 7 selected fixtures...
