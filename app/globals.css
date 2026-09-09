@@ -373,3 +373,264 @@ h2{
     font-size: 13px;
   }
 }
+
+
+/* Pick 7 - Professional History */
+
+.history-header {
+  background: linear-gradient(135deg, #103d5e, #0b253b);
+}
+
+.history-kicker {
+  color: #7ff0b1;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.history-header h2 {
+  margin-bottom: 6px;
+}
+
+.history-round {
+  overflow: hidden;
+}
+
+.history-round-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.history-round-top h3 {
+  margin: 5px 0 0;
+  font-size: 22px;
+}
+
+.history-status {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #143e5b;
+  color: #7ff0b1;
+  font-size: 10px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.history-summary {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.history-stat {
+  padding: 11px 7px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.055);
+  border: 1px solid rgba(255,255,255,0.07);
+  text-align: center;
+}
+
+.history-stat-main {
+  background: linear-gradient(
+    145deg,
+    rgba(36,196,113,0.16),
+    rgba(8,125,73,0.08)
+  );
+  border-color: rgba(36,196,113,0.28);
+}
+
+.history-stat-label {
+  color: #9eb3c3;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .6px;
+  margin-bottom: 5px;
+}
+
+.history-stat-value {
+  color: #7ff0b1;
+  font-size: 25px;
+  font-weight: 900;
+}
+
+.history-stat-value span {
+  color: #9eb3c3;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.history-stat-value.small {
+  font-size: 18px;
+  color: #fff;
+}
+
+.history-games {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-game {
+  padding: 13px;
+  border-radius: 13px;
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.history-game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: #9eb3c3;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .6px;
+}
+
+.history-points {
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.history-points.ten {
+  background: #174c32;
+  color: #7ff0b1;
+}
+
+.history-points.six {
+  background: #3d4320;
+  color: #e5ef83;
+}
+
+.history-points.zero {
+  background: #47252e;
+  color: #ffb8c7;
+}
+
+.history-teams {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.history-team {
+  font-size: 12px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.history-team.home {
+  text-align: left;
+}
+
+.history-team.away {
+  text-align: right;
+}
+
+.history-score-block {
+  text-align: center;
+  min-width: 60px;
+}
+
+.history-prediction {
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+}
+
+.history-actual {
+  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 900;
+  color: #7ff0b1;
+}
+
+.history-pending {
+  margin-top: 4px;
+  color: #9eb3c3;
+  font-size: 8px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.history-result-label {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  color: #9eb3c3;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .5px;
+  text-align: center;
+}
+
+.history-divider {
+  color: #31536c;
+}
+
+.empty-history {
+  text-align: center;
+  padding: 18px 5px;
+}
+
+.empty-history-icon {
+  font-size: 34px;
+  margin-bottom: 8px;
+}
+
+.empty-history h3 {
+  margin: 5px 0;
+}
+
+@media (max-width: 430px) {
+
+  .history-summary {
+    gap: 6px;
+  }
+
+  .history-stat {
+    padding: 10px 4px;
+  }
+
+  .history-stat-label {
+    font-size: 8px;
+  }
+
+  .history-stat-value {
+    font-size: 22px;
+  }
+
+  .history-stat-value.small {
+    font-size: 16px;
+  }
+
+  .history-game {
+    padding: 11px;
+  }
+
+  .history-team {
+    font-size: 11px;
+  }
+
+  .history-prediction {
+    font-size: 18px;
+  }
+
+  .history-result-label {
+    font-size: 7px;
+  }
+}
