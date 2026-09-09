@@ -116,7 +116,7 @@ export default function Home() {
       if (linksError) throw linksError;
 
       const fixtureIds = (links || [])
-        .map(x => x.fixture_id)
+        .map((x) => x.fixture_id)
         .filter(Boolean);
 
       if (fixtureIds.length === 0) {
@@ -131,11 +131,11 @@ export default function Home() {
       if (fixtureError) throw fixtureError;
 
       const byId = Object.fromEntries(
-        (fixtures || []).map(f => [f.id, f])
+        (fixtures || []).map((f) => [f.id, f])
       );
 
       const orderedGames = (links || [])
-        .map(x => byId[x.fixture_id])
+        .map((x) => byId[x.fixture_id])
         .filter(Boolean);
 
       if (orderedGames.length === 0) {
@@ -143,7 +143,7 @@ export default function Home() {
       }
 
       const earliestKickoff = orderedGames
-        .map(game => new Date(game.kickoff).getTime())
+        .map((game) => new Date(game.kickoff).getTime())
         .sort((a, b) => a - b)[0];
 
       setLockTime(new Date(earliestKickoff).toISOString());
@@ -176,10 +176,10 @@ export default function Home() {
     if (data && data.length === games.length) {
       const saved = {};
 
-      data.forEach(p => {
+      data.forEach((p) => {
         saved[p.fixture_id] = {
           home: p.predicted_home,
-          away: p.predicted_away
+          away: p.predicted_away,
         };
       });
 
@@ -201,12 +201,12 @@ export default function Home() {
   function setScore(id, side, value) {
     if (submitted || locked) return;
 
-    setPredictions(current => ({
+    setPredictions((current) => ({
       ...current,
       [id]: {
         ...(current[id] || {}),
-        [side]: value === "" ? "" : Number(value)
-      }
+        [side]: value === "" ? "" : Number(value),
+      },
     }));
   }
 
@@ -215,7 +215,7 @@ export default function Home() {
 
     const { data, error } = await supabase().auth.signInWithPassword({
       email: email.trim(),
-      password
+      password,
     });
 
     if (error) {
@@ -235,7 +235,7 @@ export default function Home() {
 
     const { data, error } = await supabase().auth.signUp({
       email: email.trim(),
-      password
+      password,
     });
 
     if (error) {
@@ -273,7 +273,7 @@ export default function Home() {
       return;
     }
 
-    const incomplete = games.some(game => {
+    const incomplete = games.some((game) => {
       const p = predictions[game.id];
 
       return (
@@ -285,24 +285,20 @@ export default function Home() {
     });
 
     if (incomplete) {
-      setMessage(
-        `Please enter all ${games.length} scores.`
-      );
+      setMessage(`Please enter all ${games.length} scores.`);
       return;
     }
 
     setSubmitting(true);
-    setMessage(
-      `Submitting your ${games.length} picks...`
-    );
+    setMessage(`Submitting your ${games.length} picks...`);
 
-    const rows = games.map(game => ({
+    const rows = games.map((game) => ({
       round_id: round.id,
       fixture_id: game.id,
       player_id: user.id,
       predicted_home: predictions[game.id].home,
       predicted_away: predictions[game.id].away,
-      submitted_at: new Date().toISOString()
+      submitted_at: new Date().toISOString(),
     }));
 
     const { error } = await supabase()
@@ -339,11 +335,21 @@ export default function Home() {
     setSubmitting(false);
   }
 
+  function formatKickoff(kickoff) {
+    const date = new Date(kickoff);
+
+    return date.toLocaleString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
   return (
     <main className="wrap">
-
       <div className="card">
-
         <div className="muted">
           {round
             ? `ROUND ${round.round_number} • ${
@@ -362,7 +368,7 @@ export default function Home() {
           <div className="notice">
             <strong>⚠️ FIXTURE UPDATE</strong>
 
-            {alerts.map(alert => (
+            {alerts.map((alert) => (
               <div
                 key={alert.id}
                 style={{ marginTop: "6px" }}
@@ -381,7 +387,6 @@ export default function Home() {
 
         {!loading && round && games.length > 0 && (
           <>
-
             {!locked && !submitted && lockTime && (
               <div className="notice">
                 🔒 PICKS CLOSE IN:{" "}
@@ -407,6 +412,163 @@ export default function Home() {
               Predict the exact score for every match.
             </p>
 
-            {games.map((game, index) => (
-              <div
-                className="fixture
+            {games.map((game, index) => {
+              const prediction = predictions[game.id] || {};
+
+              return (
+                <div
+                  className="fixture"
+                  key={game.id}
+                >
+                  <div className="fixtureNumber">
+                    GAME {index + 1}
+                  </div>
+
+                  <div className="kickoff">
+                    {formatKickoff(game.kickoff)}
+                  </div>
+
+                  <div className="teams">
+                    <div className="team">
+                      <strong>{game.home_team}</strong>
+
+                      <input
+                        type="number"
+                        min="0"
+                        max="20"
+                        inputMode="numeric"
+                        value={
+                          prediction.home === undefined
+                            ? ""
+                            : prediction.home
+                        }
+                        disabled={submitted || locked}
+                        onChange={(event) =>
+                          setScore(
+                            game.id,
+                            "home",
+                            event.target.value
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="vs">V</div>
+
+                    <div className="team">
+                      <input
+                        type="number"
+                        min="0"
+                        max="20"
+                        inputMode="numeric"
+                        value={
+                          prediction.away === undefined
+                            ? ""
+                            : prediction.away
+                        }
+                        disabled={submitted || locked}
+                        onChange={(event) =>
+                          setScore(
+                            game.id,
+                            "away",
+                            event.target.value
+                          )
+                        }
+                      />
+
+                      <strong>{game.away_team}</strong>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {message && (
+              <div className="notice">
+                {message}
+              </div>
+            )}
+
+            {!user && !locked && (
+              <div className="card">
+                <h3>Sign in to play</h3>
+
+                <form onSubmit={signIn}>
+                  <input
+                    type="email"
+                    placeholder="Email address"
+                    value={email}
+                    onChange={(event) =>
+                      setEmail(event.target.value)
+                    }
+                    autoComplete="email"
+                  />
+
+                  <input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(event) =>
+                      setPassword(event.target.value)
+                    }
+                    autoComplete="current-password"
+                  />
+
+                  <button type="submit">
+                    SIGN IN
+                  </button>
+                </form>
+
+                <button
+                  type="button"
+                  onClick={createAccount}
+                >
+                  CREATE ACCOUNT
+                </button>
+              </div>
+            )}
+
+            {user && (
+              <>
+                <p className="muted">
+                  Signed in.
+                </p>
+
+                {!submitted && !locked && (
+                  <button
+                    type="button"
+                    onClick={submit}
+                    disabled={submitting}
+                  >
+                    {submitting
+                      ? "SUBMITTING..."
+                      : `SUBMIT ${games.length} PICKS`}
+                  </button>
+                )}
+
+                {submitted && (
+                  <div className="notice">
+                    ✅ Your picks are locked in.
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={signOut}
+                >
+                  SIGN OUT
+                </button>
+              </>
+            )}
+          </>
+        )}
+
+        {!loading && !round && (
+          <div className="notice">
+            {message}
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
