@@ -606,35 +606,7 @@ export default function Home() {
     )}
   </>
 )}
-            type="button"
-            onClick={submit}
-            disabled={submitting}
-          >
-            {submitting
-              ? "SUBMITTING..."
-              : `SUBMIT ${games.length} PICKS`}
-          </button>
-        )}
-
-        {submitted && (
-          <div className="notice">
-            ✅ Your picks are locked in.
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={signOut}
-        >
-          SIGN OUT
-        </button>
-      </>
-    )}
-  </>
-)}
-
-{!loading && !round && (
-  <div className="notice">
+            
     {message}
   </div>
 )}
