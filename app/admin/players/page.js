@@ -109,12 +109,19 @@ export default function PlayersAdmin() {
       return;
     }
 
-    setName("");
-    setPassword("");
-    setMessage(`${data.display_name} has been created successfully.`);
-    setAdding(false);
+    setPlayers(prev => [
+  ...prev,
+  {
+    id: data.player_id,
+    display_name: data.display_name,
+    is_admin: false,
+  },
+]);
 
-    loadPlayers();
+setName("");
+setPassword("");
+setMessage(`${data.display_name} has been created successfully.`);
+setAdding(false);
   }
 
   const existingNames = players.map(player => player.display_name);
