@@ -607,7 +607,11 @@ export default function Home() {
   </>
 )}
             
-    
+  {!loading && !round && (
+  <div className="notice">
+    {message}
+  </div>
+)}  
       </div>
     </main>
   );
