@@ -85,7 +85,7 @@ export default function PlayersAdmin() {
     setMessage("Creating player...");
 
     const { data, error } = await supabase().functions.invoke(
-      "create-pick7-player",
+      "admin-create-player",
       {
         body: {
           display_name: name,
@@ -100,7 +100,7 @@ export default function PlayersAdmin() {
       return;
     }
 
-    if (!data?.success) {
+    if (!data?.ok) {
       setMessage(
         "Could not create player: " +
           (data?.error || "Unknown error")
