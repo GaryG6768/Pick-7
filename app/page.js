@@ -560,13 +560,52 @@ export default function Home() {
     )}
 
     {user && (
-      <>
-        <p className="muted">
-          Signed in.
-        </p>
+  <>
+    <p className="muted">
+      👤 Signed in.
+    </p>
 
-        {!submitted && !locked && (
+    {!submitted && !locked && (
+      <div className="account-actions">
+        <button
+          type="button"
+          onClick={submit}
+          disabled={submitting}
+        >
+          {submitting
+            ? "✈ SUBMITTING..."
+            : `✈ SUBMIT ${games.length} PICKS`}
+        </button>
+
+        <button
+          type="button"
+          onClick={signOut}
+          className="sign-out"
+        >
+          ⇥ SIGN OUT
+        </button>
+      </div>
+    )}
+
+    {submitted && (
+      <>
+        <div className="notice">
+          ✅ Your picks are locked in.
+        </div>
+
+        <div className="account-actions">
           <button
+            type="button"
+            onClick={signOut}
+            className="sign-out"
+          >
+            ⇥ SIGN OUT
+          </button>
+        </div>
+      </>
+    )}
+  </>
+)}
             type="button"
             onClick={submit}
             disabled={submitting}
