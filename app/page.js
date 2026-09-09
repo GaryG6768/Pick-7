@@ -413,4 +413,193 @@ export default function Home() {
           </p>
         )}
 
-        {!loading && round && games.length
+        {!loading && round && games.length > 0 && (
+  <>
+    {!locked && !submitted && lockTime && (
+      <div className="notice">
+        🔒 PICKS CLOSE IN:{" "}
+        <strong>{countdown}</strong>
+      </div>
+    )}
+
+    {locked && (
+      <div className="notice">
+        🔒 PICKS ARE NOW LOCKED
+      </div>
+    )}
+
+    {games.length < 7 && (
+      <div className="notice">
+        ⚠️ This round has {games.length} games because
+        one or more selected fixtures were postponed.
+        No replacement game will be added.
+      </div>
+    )}
+
+    <p className="muted">
+      Predict the exact score for every match.
+    </p>
+
+    {games.map((game, index) => {
+      const prediction = predictions[game.id] || {};
+
+      return (
+        <div
+          className="fixture"
+          key={game.id}
+        >
+          <div className="fixtureNumber">
+            GAME {index + 1}
+          </div>
+
+          <div className="kickoff">
+            {formatKickoff(game.kickoff)}
+          </div>
+
+          <div className="teams">
+            <div className="team">
+              <strong>{game.home_team}</strong>
+
+              <input
+                type="number"
+                min="0"
+                max="20"
+                inputMode="numeric"
+                value={
+                  prediction.home === undefined
+                    ? ""
+                    : prediction.home
+                }
+                disabled={submitted || locked}
+                onChange={(event) =>
+                  setScore(
+                    game.id,
+                    "home",
+                    event.target.value
+                  )
+                }
+              />
+            </div>
+
+            <div className="vs">V</div>
+
+            <div className="team">
+              <input
+                type="number"
+                min="0"
+                max="20"
+                inputMode="numeric"
+                value={
+                  prediction.away === undefined
+                    ? ""
+                    : prediction.away
+                }
+                disabled={submitted || locked}
+                onChange={(event) =>
+                  setScore(
+                    game.id,
+                    "away",
+                    event.target.value
+                  )
+                }
+              />
+
+              <strong>{game.away_team}</strong>
+            </div>
+          </div>
+        </div>
+      );
+    })}
+
+    {message && (
+      <div className="notice">
+        {message}
+      </div>
+    )}
+
+    {!user && !locked && (
+      <div className="card">
+        <h3>Sign in to play</h3>
+
+        <form onSubmit={signIn}>
+          <select
+            value={playerName}
+            onChange={(event) =>
+              setPlayerName(event.target.value)
+            }
+          >
+            <option value="">
+              Select your player name
+            </option>
+
+            {players.map((player) => (
+              <option
+                key={player}
+                value={player}
+              >
+                {player}
+              </option>
+            ))}
+          </select>
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(event) =>
+              setPassword(event.target.value)
+            }
+            autoComplete="current-password"
+          />
+
+          <button type="submit">
+            SIGN IN
+          </button>
+        </form>
+      </div>
+    )}
+
+    {user && (
+      <>
+        <p className="muted">
+          Signed in.
+        </p>
+
+        {!submitted && !locked && (
+          <button
+            type="button"
+            onClick={submit}
+            disabled={submitting}
+          >
+            {submitting
+              ? "SUBMITTING..."
+              : `SUBMIT ${games.length} PICKS`}
+          </button>
+        )}
+
+        {submitted && (
+          <div className="notice">
+            ✅ Your picks are locked in.
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={signOut}
+        >
+          SIGN OUT
+        </button>
+      </>
+    )}
+  </>
+)}
+
+{!loading && !round && (
+  <div className="notice">
+    {message}
+  </div>
+)}
+      </div>
+    </main>
+  );
+}
