@@ -7,7 +7,8 @@ export default function Home() {
   const [round, setRound] = useState(null);
   const [games, setGames] = useState([]);
   const [predictions, setPredictions] = useState({});
-  const [email, setEmail] = useState("");
+  const [playerName, setPlayerName] = useState("");
+  const [players, setPlayers] = useState([]);
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("Loading Pick 7...");
   const [loading, setLoading] = useState(true);
@@ -22,6 +23,7 @@ export default function Home() {
   useEffect(() => {
     loadRound();
     checkUser();
+    loadPlayers();
   }, []);
 
   useEffect(() => {
@@ -74,6 +76,22 @@ export default function Home() {
     if (data?.user) {
       setUser(data.user);
     }
+  }
+
+  async function loadPlayers() {
+    const { data, error } = await supabase().functions.invoke(
+      "player-login",
+      {
+        body: { action: "list" },
+      }
+    );
+
+    if (error) {
+      console.error("Could not load players:", error);
+      return;
+    }
+
+    setPlayers(data?.players || []);
   }
 
   async function loadRound() {
@@ -213,42 +231,52 @@ export default function Home() {
   async function signIn(event) {
     event.preventDefault();
 
-    const { data, error } = await supabase().auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
+    if (!playerName) {
+      setMessage("Please select your player name.");
+      return;
+    }
+
+    if (!password) {
+      setMessage("Please enter your password.");
+      return;
+    }
+
+    setMessage("Signing in...");
+
+    const { data, error } = await supabase().functions.invoke(
+      "player-login",
+      {
+        body: {
+          display_name: playerName,
+          password,
+        },
+      }
+    );
 
     if (error) {
       setMessage("Sign-in failed: " + error.message);
       return;
     }
 
-    setUser(data.user);
+    if (!data?.access_token || !data?.refresh_token) {
+      setMessage("Sign-in failed: Invalid login response.");
+      return;
+    }
+
+    const { data: sessionData, error: sessionError } =
+      await supabase().auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      });
+
+    if (sessionError) {
+      setMessage("Sign-in failed: " + sessionError.message);
+      return;
+    }
+
+    setUser(sessionData.user);
+    setPassword("");
     setMessage("You are signed in.");
-  }
-
-  async function createAccount() {
-    if (!email || !password) {
-      setMessage("Enter your email and password first.");
-      return;
-    }
-
-    const { data, error } = await supabase().auth.signUp({
-      email: email.trim(),
-      password,
-    });
-
-    if (error) {
-      setMessage("Could not create account: " + error.message);
-      return;
-    }
-
-    if (data.user) {
-      setUser(data.user);
-      setMessage(
-        `Account created. You can now enter your ${games.length} predictions.`
-      );
-    }
   }
 
   async function signOut() {
@@ -385,190 +413,4 @@ export default function Home() {
           </p>
         )}
 
-        {!loading && round && games.length > 0 && (
-          <>
-            {!locked && !submitted && lockTime && (
-              <div className="notice">
-                🔒 PICKS CLOSE IN:{" "}
-                <strong>{countdown}</strong>
-              </div>
-            )}
-
-            {locked && (
-              <div className="notice">
-                🔒 PICKS ARE NOW LOCKED
-              </div>
-            )}
-
-            {games.length < 7 && (
-              <div className="notice">
-                ⚠️ This round has {games.length} games because
-                one or more selected fixtures were postponed.
-                No replacement game will be added.
-              </div>
-            )}
-
-            <p className="muted">
-              Predict the exact score for every match.
-            </p>
-
-            {games.map((game, index) => {
-              const prediction = predictions[game.id] || {};
-
-              return (
-                <div
-                  className="fixture"
-                  key={game.id}
-                >
-                  <div className="fixtureNumber">
-                    GAME {index + 1}
-                  </div>
-
-                  <div className="kickoff">
-                    {formatKickoff(game.kickoff)}
-                  </div>
-
-                  <div className="teams">
-                    <div className="team">
-                      <strong>{game.home_team}</strong>
-
-                      <input
-                        type="number"
-                        min="0"
-                        max="20"
-                        inputMode="numeric"
-                        value={
-                          prediction.home === undefined
-                            ? ""
-                            : prediction.home
-                        }
-                        disabled={submitted || locked}
-                        onChange={(event) =>
-                          setScore(
-                            game.id,
-                            "home",
-                            event.target.value
-                          )
-                        }
-                      />
-                    </div>
-
-                    <div className="vs">V</div>
-
-                    <div className="team">
-                      <input
-                        type="number"
-                        min="0"
-                        max="20"
-                        inputMode="numeric"
-                        value={
-                          prediction.away === undefined
-                            ? ""
-                            : prediction.away
-                        }
-                        disabled={submitted || locked}
-                        onChange={(event) =>
-                          setScore(
-                            game.id,
-                            "away",
-                            event.target.value
-                          )
-                        }
-                      />
-
-                      <strong>{game.away_team}</strong>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {message && (
-              <div className="notice">
-                {message}
-              </div>
-            )}
-
-            {!user && !locked && (
-              <div className="card">
-                <h3>Sign in to play</h3>
-
-                <form onSubmit={signIn}>
-                  <input
-                    type="email"
-                    placeholder="Email address"
-                    value={email}
-                    onChange={(event) =>
-                      setEmail(event.target.value)
-                    }
-                    autoComplete="email"
-                  />
-
-                  <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(event) =>
-                      setPassword(event.target.value)
-                    }
-                    autoComplete="current-password"
-                  />
-
-                  <button type="submit">
-                    SIGN IN
-                  </button>
-                </form>
-
-                <button
-                  type="button"
-                  onClick={createAccount}
-                >
-                  CREATE ACCOUNT
-                </button>
-              </div>
-            )}
-
-            {user && (
-              <>
-                <p className="muted">
-                  Signed in.
-                </p>
-
-                {!submitted && !locked && (
-                  <button
-                    type="button"
-                    onClick={submit}
-                    disabled={submitting}
-                  >
-                    {submitting
-                      ? "SUBMITTING..."
-                      : `SUBMIT ${games.length} PICKS`}
-                  </button>
-                )}
-
-                {submitted && (
-                  <div className="notice">
-                    ✅ Your picks are locked in.
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={signOut}
-                >
-                  SIGN OUT
-                </button>
-              </>
-            )}
-          </>
-        )}
-
-        {!loading && !round && (
-          <div className="notice">
-            {message}
-          </div>
-        )}
-      </div>
-    </main>
-  );
-}
+        {!loading && round && games.length
