@@ -607,9 +607,7 @@ export default function Home() {
   </>
 )}
             
-    {message}
-  </div>
-)}
+    
       </div>
     </main>
   );
