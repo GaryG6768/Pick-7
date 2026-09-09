@@ -71,8 +71,8 @@ export default function PlayersAdmin() {
   }
 
   async function addPlayer() {
-    if (!name.trim()) {
-      setMessage("Enter a player name.");
+    if (!name) {
+      setMessage("Select a player name.");
       return;
     }
 
@@ -88,7 +88,7 @@ export default function PlayersAdmin() {
       "create-pick7-player",
       {
         body: {
-          display_name: name.trim(),
+          display_name: name,
           password,
         },
       }
@@ -117,6 +117,12 @@ export default function PlayersAdmin() {
     loadPlayers();
   }
 
+  const existingNames = players.map(player => player.display_name);
+
+  const availablePlayers = PLAYER_NAMES.filter(
+    player => !existingNames.includes(player)
+  );
+
   return (
     <main className="wrap">
 
@@ -129,28 +135,28 @@ export default function PlayersAdmin() {
           Create and manage the Pick 7 player accounts.
         </p>
 
-        <input
-          type="text"
-          placeholder="Player name"
+        <select
           value={name}
           onChange={e => setName(e.target.value)}
-          list="player-names"
           style={{
             width: "100%",
-            padding: 12,
+            padding: 14,
             marginBottom: 12,
             background: "#07111f",
             color: "white",
             border: "1px solid #42627e",
             borderRadius: 8,
+            fontSize: 16,
           }}
-        />
+        >
+          <option value="">Select player name</option>
 
-        <datalist id="player-names">
-          {PLAYER_NAMES.map(player => (
-            <option key={player} value={player} />
+          {availablePlayers.map(player => (
+            <option key={player} value={player}>
+              {player}
+            </option>
           ))}
-        </datalist>
+        </select>
 
         <input
           type="password"
@@ -159,19 +165,20 @@ export default function PlayersAdmin() {
           onChange={e => setPassword(e.target.value)}
           style={{
             width: "100%",
-            padding: 12,
+            padding: 14,
             marginBottom: 12,
             background: "#07111f",
             color: "white",
             border: "1px solid #42627e",
             borderRadius: 8,
+            fontSize: 16,
           }}
         />
 
         <button
           className="btn"
           onClick={addPlayer}
-          disabled={adding}
+          disabled={adding || !name}
         >
           {adding ? "CREATING..." : "ADD PLAYER"}
         </button>
