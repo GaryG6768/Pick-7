@@ -17,7 +17,8 @@ export default function Home() {
   const [locked, setLocked] = useState(false);
   const [lockTime, setLockTime] = useState(null);
   const [countdown, setCountdown] = useState("");
-const [alerts, setAlerts] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+
   useEffect(() => {
     loadRound();
     checkUser();
@@ -45,11 +46,15 @@ const [alerts, setAlerts] = useState([]);
 
       if (days > 0) {
         setCountdown(
-          `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`
+          `${days}d ${String(hours).padStart(2, "0")}h ${String(
+            minutes
+          ).padStart(2, "0")}m`
         );
       } else {
         setCountdown(
-          `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+          `${String(hours).padStart(2, "0")}:${String(
+            minutes
+          ).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
         );
       }
 
@@ -91,6 +96,7 @@ const [alerts, setAlerts] = useState([]);
         setMessage("No round is currently open.");
         return;
       }
+
       const { data: alertData, error: alertError } = await db
         .from("fixture_change_alerts")
         .select("id, message, created_at")
@@ -100,6 +106,7 @@ const [alerts, setAlerts] = useState([]);
       if (alertError) throw alertError;
 
       setAlerts(alertData || []);
+
       const { data: links, error: linksError } = await db
         .from("round_fixtures")
         .select("fixture_number, fixture_id")
@@ -112,10 +119,8 @@ const [alerts, setAlerts] = useState([]);
         .map(x => x.fixture_id)
         .filter(Boolean);
 
-      if (fixtureIds.length !== 7) {
-        throw new Error(
-          `This round contains ${fixtureIds.length} fixtures instead of 7.`
-        );
+      if (fixtureIds.length === 0) {
+        throw new Error("This round currently has no fixtures.");
       }
 
       const { data: fixtures, error: fixtureError } = await db
@@ -133,8 +138,8 @@ const [alerts, setAlerts] = useState([]);
         .map(x => byId[x.fixture_id])
         .filter(Boolean);
 
-      if (orderedGames.length !== 7) {
-        throw new Error("The 7 selected fixtures could not be loaded.");
+      if (orderedGames.length === 0) {
+        throw new Error("The selected fixtures could not be loaded.");
       }
 
       const earliestKickoff = orderedGames
@@ -150,7 +155,7 @@ const [alerts, setAlerts] = useState([]);
     } catch (error) {
       setMessage(
         "Unable to load Pick 7: " +
-        (error?.message || "Unknown error")
+          (error?.message || "Unknown error")
       );
     } finally {
       setLoading(false);
@@ -158,7 +163,7 @@ const [alerts, setAlerts] = useState([]);
   }
 
   async function checkSubmitted(currentUser, currentRound) {
-    if (!currentUser || !currentRound) return;
+    if (!currentUser || !currentRound || games.length === 0) return;
 
     const { data, error } = await supabase()
       .from("predictions")
@@ -168,7 +173,7 @@ const [alerts, setAlerts] = useState([]);
 
     if (error) return;
 
-    if (data && data.length === 7) {
+    if (data && data.length === games.length) {
       const saved = {};
 
       data.forEach(p => {
@@ -180,15 +185,18 @@ const [alerts, setAlerts] = useState([]);
 
       setPredictions(saved);
       setSubmitted(true);
-      setMessage("Your 7 picks are already submitted and locked.");
+
+      setMessage(
+        `Your ${games.length} picks are already submitted and locked.`
+      );
     }
   }
 
   useEffect(() => {
-    if (user && round) {
+    if (user && round && games.length > 0) {
       checkSubmitted(user, round);
     }
-  }, [user, round]);
+  }, [user, round, games]);
 
   function setScore(id, side, value) {
     if (submitted || locked) return;
@@ -237,7 +245,9 @@ const [alerts, setAlerts] = useState([]);
 
     if (data.user) {
       setUser(data.user);
-      setMessage("Account created. You can now enter your 7 predictions.");
+      setMessage(
+        `Account created. You can now enter your ${games.length} predictions.`
+      );
     }
   }
 
@@ -258,7 +268,7 @@ const [alerts, setAlerts] = useState([]);
       return;
     }
 
-    if (!round || games.length !== 7) {
+    if (!round || games.length === 0) {
       setMessage("There is no valid Pick 7 round available.");
       return;
     }
@@ -275,12 +285,16 @@ const [alerts, setAlerts] = useState([]);
     });
 
     if (incomplete) {
-      setMessage("Please enter all 7 scores.");
+      setMessage(
+        `Please enter all ${games.length} scores.`
+      );
       return;
     }
 
     setSubmitting(true);
-    setMessage("Submitting your 7 picks...");
+    setMessage(
+      `Submitting your ${games.length} picks...`
+    );
 
     const rows = games.map(game => ({
       round_id: round.id,
@@ -298,14 +312,20 @@ const [alerts, setAlerts] = useState([]);
     if (error) {
       if (error.code === "23505") {
         setSubmitted(true);
-        setMessage("Your 7 picks are already submitted and locked.");
+        setMessage(
+          `Your ${games.length} picks are already submitted and locked.`
+        );
       } else if (
         error.message?.toLowerCase().includes("locked")
       ) {
         setLocked(true);
-        setMessage("The first match has kicked off. Picks are now locked.");
+        setMessage(
+          "The first match has kicked off. Picks are now locked."
+        );
       } else {
-        setMessage("Could not submit picks: " + error.message);
+        setMessage(
+          "Could not submit picks: " + error.message
+        );
       }
 
       setSubmitting(false);
@@ -313,7 +333,9 @@ const [alerts, setAlerts] = useState([]);
     }
 
     setSubmitted(true);
-    setMessage("Your 7 picks have been submitted and locked.");
+    setMessage(
+      `Your ${games.length} picks have been submitted and locked.`
+    );
     setSubmitting(false);
   }
 
@@ -324,35 +346,46 @@ const [alerts, setAlerts] = useState([]);
 
         <div className="muted">
           {round
-            ? `ROUND ${round.round_number} • ${locked ? "LOCKED" : "OPEN"}`
+            ? `ROUND ${round.round_number} • ${
+                locked ? "LOCKED" : "OPEN"
+              }`
             : "PICK 7"}
         </div>
 
         <h2>
-          {round ? "Make Your 7 Picks" : "Pick 7"}
+          {round
+            ? `Make Your ${games.length || 7} Picks`
+            : "Pick 7"}
         </h2>
+
         {alerts.length > 0 && (
           <div className="notice">
             <strong>⚠️ FIXTURE UPDATE</strong>
+
             {alerts.map(alert => (
-              <div key={alert.id} style={{ marginTop: "6px" }}>
+              <div
+                key={alert.id}
+                style={{ marginTop: "6px" }}
+              >
                 {alert.message}
               </div>
             ))}
           </div>
         )}
+
         {loading && (
           <p className="muted">
-            Loading the 7 selected fixtures...
+            Loading the selected fixtures...
           </p>
         )}
 
-        {!loading && round && games.length === 7 && (
+        {!loading && round && games.length > 0 && (
           <>
 
             {!locked && !submitted && lockTime && (
               <div className="notice">
-                🔒 PICKS CLOSE IN: <strong>{countdown}</strong>
+                🔒 PICKS CLOSE IN:{" "}
+                <strong>{countdown}</strong>
               </div>
             )}
 
@@ -362,177 +395,18 @@ const [alerts, setAlerts] = useState([]);
               </div>
             )}
 
+            {games.length < 7 && (
+              <div className="notice">
+                ⚠️ This round has {games.length} games because
+                one or more selected fixtures were postponed.
+                No replacement game will be added.
+              </div>
+            )}
+
             <p className="muted">
               Predict the exact score for every match.
             </p>
 
             {games.map((game, index) => (
-              <div className="fixture" key={game.id}>
-
-                <div className="team">
-                  {index + 1}. {game.home_team}
-                </div>
-
-                <input
-                  className="score"
-                  type="number"
-                  min="0"
-                  inputMode="numeric"
-                  disabled={submitted || locked}
-                  value={predictions[game.id]?.home ?? ""}
-                  onChange={e =>
-                    setScore(game.id, "home", e.target.value)
-                  }
-                />
-
-                <div>-</div>
-
-                <input
-                  className="score"
-                  type="number"
-                  min="0"
-                  inputMode="numeric"
-                  disabled={submitted || locked}
-                  value={predictions[game.id]?.away ?? ""}
-                  onChange={e =>
-                    setScore(game.id, "away", e.target.value)
-                  }
-                />
-
-                <div className="away">
-                  {game.away_team}
-                </div>
-
-              </div>
-            ))}
-
-            <br />
-
-            <button
-              className="btn"
-              onClick={submit}
-              disabled={
-                !user ||
-                submitted ||
-                submitting ||
-                locked
-              }
-            >
-              {submitted
-                ? "PICKS SUBMITTED & LOCKED"
-                : locked
-                ? "PICKS LOCKED"
-                : submitting
-                ? "SUBMITTING..."
-                : "SUBMIT & LOCK MY PICKS"}
-            </button>
-
-            {!user && !locked && (
-              <p className="muted">
-                Please create an account or sign in below before submitting.
-              </p>
-            )}
-
-            {submitted && (
-              <p className="muted">
-                Your predictions are locked and cannot be changed.
-              </p>
-            )}
-
-          </>
-        )}
-
-        {!loading && !round && (
-          <p className="muted">{message}</p>
-        )}
-
-        {!loading && round && games.length !== 7 && (
-          <p className="notice">{message}</p>
-        )}
-
-      </div>
-
-      <div className="card">
-
-        <h3>Player Sign-in</h3>
-
-        {user ? (
-          <>
-            <p className="muted">
-              Signed in as {user.email}
-            </p>
-
-            <button className="btn" onClick={signOut}>
-              SIGN OUT
-            </button>
-          </>
-        ) : (
-          <>
-            <p className="muted">
-              Sign in with your email and password.
-            </p>
-
-            <form onSubmit={signIn}>
-
-              <input
-                style={{
-                  width: "100%",
-                  padding: 12,
-                  background: "#07111f",
-                  border: "1px solid #42627e",
-                  borderRadius: 8
-                }}
-                type="email"
-                placeholder="Email address"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-              />
-
-              <br />
-              <br />
-
-              <input
-                style={{
-                  width: "100%",
-                  padding: 12,
-                  background: "#07111f",
-                  border: "1px solid #42627e",
-                  borderRadius: 8
-                }}
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-              />
-
-              <br />
-              <br />
-
-              <button className="btn" type="submit">
-                SIGN IN
-              </button>
-
-            </form>
-
-            <br />
-
-            <button
-              className="btn"
-              onClick={createAccount}
-            >
-              CREATE PLAYER ACCOUNT
-            </button>
-          </>
-        )}
-
-        <p className="notice">
-          {message}
-        </p>
-
-      </div>
-
-    </main>
-  );
-}
+              <div
+                className="fixture
