@@ -470,7 +470,18 @@ export default function Admin() {
           SIGN OUT
         </button>
       </div>
-
+<a
+  href="/admin/players"
+  className="btn"
+  style={{
+    display: "block",
+    textAlign: "center",
+    textDecoration: "none",
+    marginTop: 12,
+  }}
+>
+  👥 PLAYERS
+</a>
       <div className="card">
         <h3>1. Create Competition</h3>
 
