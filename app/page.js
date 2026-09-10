@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function Home() {
@@ -13,6 +13,7 @@ export default function Home() {
   const [message, setMessage] = useState("Loading Pick 7...");
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [locked, setLocked] = useState(false);
@@ -27,6 +28,8 @@ export default function Home() {
     useState("");
   const [changingPassword, setChangingPassword] =
     useState(false);
+
+  const scoreRefs = useRef([]);
 
   useEffect(() => {
     loadRound();
@@ -51,13 +54,19 @@ export default function Home() {
       const totalSeconds = Math.floor(
         difference / 1000
       );
-      const days = Math.floor(totalSeconds / 86400);
+
+      const days = Math.floor(
+        totalSeconds / 86400
+      );
+
       const hours = Math.floor(
         (totalSeconds % 86400) / 3600
       );
+
       const minutes = Math.floor(
         (totalSeconds % 3600) / 60
       );
+
       const seconds = totalSeconds % 60;
 
       if (days > 0) {
@@ -90,17 +99,30 @@ export default function Home() {
 
     updateLock();
 
-    const timer = setInterval(updateLock, 1000);
+    const timer = setInterval(
+      updateLock,
+      1000
+    );
 
     return () => clearInterval(timer);
   }, [lockTime]);
 
   async function checkUser() {
-    const { data } = await supabase().auth.getUser();
+    const { data } =
+      await supabase().auth.getUser();
 
-    if (data?.user) {
-      setUser(data.user);
-    }
+    if (!data?.user) return;
+
+    setUser(data.user);
+
+    const { data: profile } =
+      await supabase()
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+    setIsAdmin(Boolean(profile?.is_admin));
   }
 
   async function loadPlayers() {
@@ -134,7 +156,9 @@ export default function Home() {
         error: roundError,
       } = await db
         .from("rounds")
-        .select("id, round_number, status")
+        .select(
+          "id, round_number, status"
+        )
         .eq("status", "open")
         .order("round_number", {
           ascending: false,
@@ -145,7 +169,9 @@ export default function Home() {
       if (roundError) throw roundError;
 
       if (!roundData) {
-        setMessage("No round is currently open.");
+        setMessage(
+          "No round is currently open."
+        );
         return;
       }
 
@@ -154,8 +180,13 @@ export default function Home() {
         error: alertError,
       } = await db
         .from("fixture_change_alerts")
-        .select("id, message, created_at")
-        .eq("round_id", roundData.id)
+        .select(
+          "id, message, created_at"
+        )
+        .eq(
+          "round_id",
+          roundData.id
+        )
         .order("created_at", {
           ascending: false,
         });
@@ -169,17 +200,23 @@ export default function Home() {
         error: linksError,
       } = await db
         .from("round_fixtures")
-        .select("fixture_number, fixture_id")
-        .eq("round_id", roundData.id)
+        .select(
+          "fixture_number, fixture_id"
+        )
+        .eq(
+          "round_id",
+          roundData.id
+        )
         .order("fixture_number", {
           ascending: true,
         });
 
       if (linksError) throw linksError;
 
-      const fixtureIds = (links || [])
-        .map((x) => x.fixture_id)
-        .filter(Boolean);
+      const fixtureIds =
+        (links || [])
+          .map((x) => x.fixture_id)
+          .filter(Boolean);
 
       if (fixtureIds.length === 0) {
         throw new Error(
@@ -197,7 +234,8 @@ export default function Home() {
         )
         .in("id", fixtureIds);
 
-      if (fixtureError) throw fixtureError;
+      if (fixtureError)
+        throw fixtureError;
 
       const byId = Object.fromEntries(
         (fixtures || []).map((f) => [
@@ -206,9 +244,12 @@ export default function Home() {
         ])
       );
 
-      const orderedGames = (links || [])
-        .map((x) => byId[x.fixture_id])
-        .filter(Boolean);
+      const orderedGames =
+        (links || [])
+          .map(
+            (x) => byId[x.fixture_id]
+          )
+          .filter(Boolean);
 
       if (orderedGames.length === 0) {
         throw new Error(
@@ -216,11 +257,16 @@ export default function Home() {
         );
       }
 
-      const earliestKickoff = orderedGames
-        .map((game) =>
-          new Date(game.kickoff).getTime()
-        )
-        .sort((a, b) => a - b)[0];
+      const earliestKickoff =
+        orderedGames
+          .map((game) =>
+            new Date(
+              game.kickoff
+            ).getTime()
+          )
+          .sort(
+            (a, b) => a - b
+          )[0];
 
       setLockTime(
         new Date(
@@ -229,7 +275,8 @@ export default function Home() {
       );
 
       setLocked(
-        earliestKickoff <= Date.now()
+        earliestKickoff <=
+          Date.now()
       );
 
       setRound(roundData);
@@ -254,8 +301,9 @@ export default function Home() {
       !currentUser ||
       !currentRound ||
       games.length === 0
-    )
+    ) {
       return;
+    }
 
     const {
       data,
@@ -265,8 +313,14 @@ export default function Home() {
       .select(
         "fixture_id, predicted_home, predicted_away"
       )
-      .eq("round_id", currentRound.id)
-      .eq("player_id", currentUser.id);
+      .eq(
+        "round_id",
+        currentRound.id
+      )
+      .eq(
+        "player_id",
+        currentUser.id
+      );
 
     if (error) return;
 
@@ -308,9 +362,16 @@ export default function Home() {
   function setScore(
     id,
     side,
-    value
+    value,
+    inputIndex
   ) {
-    if (submitted || locked) return;
+    if (
+      !user ||
+      submitted ||
+      locked
+    ) {
+      return;
+    }
 
     setPredictions((current) => ({
       ...current,
@@ -322,6 +383,38 @@ export default function Home() {
             : Number(value),
       },
     }));
+
+    /*
+      Automatically move to the next
+      score box after entering a score.
+
+      We use setTimeout so the current
+      input has time to update before
+      focus moves.
+    */
+    if (
+      value !== "" &&
+      inputIndex !== undefined
+    ) {
+      const nextIndex =
+        inputIndex + 1;
+
+      if (
+        scoreRefs.current[
+          nextIndex
+        ]
+      ) {
+        setTimeout(() => {
+          scoreRefs.current[
+            nextIndex
+          ].focus();
+
+          scoreRefs.current[
+            nextIndex
+          ].select?.();
+        }, 50);
+      }
+    }
   }
 
   async function signIn(event) {
@@ -350,7 +443,8 @@ export default function Home() {
       "player-login",
       {
         body: {
-          display_name: playerName,
+          display_name:
+            playerName,
           password,
         },
       }
@@ -377,12 +471,15 @@ export default function Home() {
     const {
       data: sessionData,
       error: sessionError,
-    } = await supabase().auth.setSession({
-      access_token:
-        data.access_token,
-      refresh_token:
-        data.refresh_token,
-    });
+    } =
+      await supabase().auth.setSession(
+        {
+          access_token:
+            data.access_token,
+          refresh_token:
+            data.refresh_token,
+        }
+      );
 
     if (sessionError) {
       setMessage(
@@ -393,14 +490,32 @@ export default function Home() {
     }
 
     setUser(sessionData.user);
+
+    const { data: profile } =
+      await supabase()
+        .from("profiles")
+        .select("is_admin")
+        .eq(
+          "id",
+          sessionData.user.id
+        )
+        .maybeSingle();
+
+    setIsAdmin(
+      Boolean(profile?.is_admin)
+    );
+
     setPassword("");
-    setMessage("You are signed in.");
+    setMessage(
+      "You are signed in."
+    );
   }
 
   async function signOut() {
     await supabase().auth.signOut();
 
     setUser(null);
+    setIsAdmin(false);
     setSubmitted(false);
     setPredictions({});
     setChangePasswordOpen(false);
@@ -412,7 +527,8 @@ export default function Home() {
   }
 
   async function changePassword() {
-    if (changingPassword) return;
+    if (changingPassword)
+      return;
 
     if (!newPassword) {
       setMessage(
@@ -429,7 +545,8 @@ export default function Home() {
     }
 
     if (
-      newPassword !== confirmPassword
+      newPassword !==
+      confirmPassword
     ) {
       setMessage(
         "The new passcodes do not match."
@@ -444,15 +561,17 @@ export default function Home() {
 
     const {
       error,
-    } = await supabase().auth.updateUser({
-      password: newPassword,
-    });
+    } = await supabase()
+      .auth.updateUser({
+        password: newPassword,
+      });
 
     if (error) {
       setMessage(
         "Could not change passcode: " +
           error.message
       );
+
       setChangingPassword(false);
       return;
     }
@@ -472,8 +591,9 @@ export default function Home() {
       submitting ||
       submitted ||
       locked
-    )
+    ) {
       return;
+    }
 
     if (!user) {
       setMessage(
@@ -492,19 +612,22 @@ export default function Home() {
       return;
     }
 
-    const incomplete = games.some(
-      (game) => {
+    const incomplete =
+      games.some((game) => {
         const p =
-          predictions[game.id];
+          predictions[
+            game.id
+          ];
 
         return (
-          p?.home === undefined ||
-          p?.away === undefined ||
+          p?.home ===
+            undefined ||
+          p?.away ===
+            undefined ||
           p?.home === "" ||
           p?.away === ""
         );
-      }
-    );
+      });
 
     if (incomplete) {
       setMessage(
@@ -514,15 +637,19 @@ export default function Home() {
     }
 
     setSubmitting(true);
+
     setMessage(
       `Submitting your ${games.length} picks...`
     );
 
-    const rows = games.map(
-      (game) => ({
-        round_id: round.id,
-        fixture_id: game.id,
-        player_id: user.id,
+    const rows =
+      games.map((game) => ({
+        round_id:
+          round.id,
+        fixture_id:
+          game.id,
+        player_id:
+          user.id,
         predicted_home:
           predictions[
             game.id
@@ -533,8 +660,7 @@ export default function Home() {
           ].away,
         submitted_at:
           new Date().toISOString(),
-      })
-    );
+      }));
 
     const { error } =
       await supabase()
@@ -543,9 +669,11 @@ export default function Home() {
 
     if (error) {
       if (
-        error.code === "23505"
+        error.code ===
+        "23505"
       ) {
         setSubmitted(true);
+
         setMessage(
           `Your ${games.length} picks are already submitted and locked.`
         );
@@ -555,6 +683,7 @@ export default function Home() {
           .includes("locked")
       ) {
         setLocked(true);
+
         setMessage(
           "The first match has kicked off. Picks are now locked."
         );
@@ -570,9 +699,11 @@ export default function Home() {
     }
 
     setSubmitted(true);
+
     setMessage(
       `Your ${games.length} picks have been submitted and locked.`
     );
+
     setSubmitting(false);
   }
 
@@ -597,6 +728,7 @@ export default function Home() {
   return (
     <main className="wrap">
       <div className="card">
+
         <div className="muted">
           {round
             ? `ROUND ${round.round_number} • ${
@@ -648,7 +780,6 @@ export default function Home() {
           games.length > 0 && (
             <>
               {!locked &&
-                !submitted &&
                 lockTime && (
                   <div className="notice">
                     🔒 PICKS CLOSE IN:{" "}
@@ -674,114 +805,256 @@ export default function Home() {
                 </div>
               )}
 
-              <p className="muted">
-                Predict the exact score
-                for every match.
-              </p>
+              {/* SIGN IN FIRST */}
 
-              {games.map(
-                (game, index) => {
-                  const prediction =
-                    predictions[
-                      game.id
-                    ] || {};
+              {!user && !locked && (
+                <div
+                  className="card"
+                  style={{
+                    marginBottom:
+                      "18px",
+                  }}
+                >
+                  <h3>
+                    🔐 SIGN IN TO PLAY
+                  </h3>
 
-                  return (
-                    <div
-                      className="fixture"
-                      key={game.id}
+                  <p className="muted">
+                    Sign in first to unlock
+                    the games and enter
+                    your predictions.
+                  </p>
+
+                  <form
+                    onSubmit={
+                      signIn
+                    }
+                  >
+                    <select
+                      value={
+                        playerName
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        setPlayerName(
+                          event
+                            .target
+                            .value
+                        )
+                      }
                     >
-                      <div className="fixtureNumber">
-                        GAME {index + 1}
-                      </div>
+                      <option value="">
+                        Select your player name
+                      </option>
 
-                      <div className="kickoff">
-                        {formatKickoff(
-                          game.kickoff
-                        )}
-                      </div>
-
-                      <div className="teams">
-                        <div className="team">
-                          <strong>
-                            {
-                              game.home_team
+                      {players.map(
+                        (player) => (
+                          <option
+                            key={
+                              player
                             }
-                          </strong>
-
-                          <input
-                            type="number"
-                            min="0"
-                            max="20"
-                            inputMode="numeric"
                             value={
-                              prediction.home ===
-                              undefined
-                                ? ""
-                                : prediction.home
+                              player
                             }
-                            disabled={
-                              submitted ||
-                              locked
-                            }
-                            onChange={(
-                              event
-                            ) =>
-                              setScore(
-                                game.id,
-                                "home",
-                                event
-                                  .target
-                                  .value
-                              )
-                            }
-                          />
-                        </div>
-
-                        <div className="vs">
-                          V
-                        </div>
-
-                        <div className="team">
-                          <input
-                            type="number"
-                            min="0"
-                            max="20"
-                            inputMode="numeric"
-                            value={
-                              prediction.away ===
-                              undefined
-                                ? ""
-                                : prediction.away
-                            }
-                            disabled={
-                              submitted ||
-                              locked
-                            }
-                            onChange={(
-                              event
-                            ) =>
-                              setScore(
-                                game.id,
-                                "away",
-                                event
-                                  .target
-                                  .value
-                              )
-                            }
-                          />
-
-                          <strong>
+                          >
                             {
-                              game.away_team
+                              player
                             }
-                          </strong>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
+                          </option>
+                        )
+                      )}
+                    </select>
+
+                    <input
+                      type="password"
+                      placeholder="Password"
+                      value={
+                        password
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        setPassword(
+                          event
+                            .target
+                            .value
+                        )
+                      }
+                      autoComplete="current-password"
+                    />
+
+                    <button type="submit">
+                      SIGN IN
+                    </button>
+                  </form>
+                </div>
               )}
+
+              {/* GAMES */}
+
+              <div
+                style={{
+                  opacity:
+                    user &&
+                    !submitted &&
+                    !locked
+                      ? 1
+                      : 0.65,
+                  pointerEvents:
+                    user &&
+                    !submitted &&
+                    !locked
+                      ? "auto"
+                      : "none",
+                }}
+              >
+                <p className="muted">
+                  {user
+                    ? "Predict the exact score for every match."
+                    : "🔒 Sign in above to unlock the games and enter your scores."}
+                </p>
+
+                {games.map(
+                  (
+                    game,
+                    index
+                  ) => {
+                    const prediction =
+                      predictions[
+                        game.id
+                      ] || {};
+
+                    const homeRefIndex =
+                      index * 2;
+
+                    const awayRefIndex =
+                      index * 2 + 1;
+
+                    return (
+                      <div
+                        className="fixture"
+                        key={
+                          game.id
+                        }
+                      >
+                        <div className="fixtureNumber">
+                          GAME{" "}
+                          {index +
+                            1}
+                        </div>
+
+                        <div className="kickoff">
+                          {formatKickoff(
+                            game.kickoff
+                          )}
+                        </div>
+
+                        <div className="teams">
+
+                          <div className="team">
+                            <strong>
+                              {
+                                game.home_team
+                              }
+                            </strong>
+
+                            <input
+                              ref={(
+                                element
+                              ) => {
+                                scoreRefs.current[
+                                  homeRefIndex
+                                ] =
+                                  element;
+                              }}
+                              type="number"
+                              min="0"
+                              max="20"
+                              inputMode="numeric"
+                              value={
+                                prediction.home ===
+                                undefined
+                                  ? ""
+                                  : prediction.home
+                              }
+                              disabled={
+                                !user ||
+                                submitted ||
+                                locked
+                              }
+                              onChange={(
+                                event
+                              ) =>
+                                setScore(
+                                  game.id,
+                                  "home",
+                                  event
+                                    .target
+                                    .value,
+                                  homeRefIndex
+                                )
+                              }
+                            />
+                          </div>
+
+                          <div className="vs">
+                            V
+                          </div>
+
+                          <div className="team">
+
+                            <input
+                              ref={(
+                                element
+                              ) => {
+                                scoreRefs.current[
+                                  awayRefIndex
+                                ] =
+                                  element;
+                              }}
+                              type="number"
+                              min="0"
+                              max="20"
+                              inputMode="numeric"
+                              value={
+                                prediction.away ===
+                                undefined
+                                  ? ""
+                                  : prediction.away
+                              }
+                              disabled={
+                                !user ||
+                                submitted ||
+                                locked
+                              }
+                              onChange={(
+                                event
+                              ) =>
+                                setScore(
+                                  game.id,
+                                  "away",
+                                  event
+                                    .target
+                                    .value,
+                                  awayRefIndex
+                                )
+                              }
+                            />
+
+                            <strong>
+                              {
+                                game.away_team
+                              }
+                            </strong>
+
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                )}
+              </div>
 
               {message && (
                 <div className="notice">
@@ -789,80 +1062,7 @@ export default function Home() {
                 </div>
               )}
 
-              {!user &&
-                !locked && (
-                  <div className="card">
-                    <h3>
-                      Sign in to play
-                    </h3>
-
-                    <form
-                      onSubmit={
-                        signIn
-                      }
-                    >
-                      <select
-                        value={
-                          playerName
-                        }
-                        onChange={(
-                          event
-                        ) =>
-                          setPlayerName(
-                            event
-                              .target
-                              .value
-                          )
-                        }
-                      >
-                        <option value="">
-                          Select your player name
-                        </option>
-
-                        {players.map(
-                          (
-                            player
-                          ) => (
-                            <option
-                              key={
-                                player
-                              }
-                              value={
-                                player
-                              }
-                            >
-                              {
-                                player
-                              }
-                            </option>
-                          )
-                        )}
-                      </select>
-
-                      <input
-                        type="password"
-                        placeholder="Password"
-                        value={
-                          password
-                        }
-                        onChange={(
-                          event
-                        ) =>
-                          setPassword(
-                            event
-                              .target
-                              .value
-                          )
-                        }
-                        autoComplete="current-password"
-                      />
-
-                      <button type="submit">
-                        SIGN IN
-                      </button>
-                    </form>
-                  </div>
-                )}
+              {/* SIGNED IN ACCOUNT AREA */}
 
               {user && (
                 <>
@@ -873,6 +1073,7 @@ export default function Home() {
                   {!submitted &&
                     !locked && (
                       <div className="account-actions">
+
                         <button
                           type="button"
                           onClick={
@@ -908,6 +1109,7 @@ export default function Home() {
                         >
                           ⇥ SIGN OUT
                         </button>
+
                       </div>
                     )}
 
@@ -918,6 +1120,7 @@ export default function Home() {
                       </div>
 
                       <div className="account-actions">
+
                         <button
                           type="button"
                           onClick={() =>
@@ -939,6 +1142,7 @@ export default function Home() {
                         >
                           ⇥ SIGN OUT
                         </button>
+
                       </div>
                     </>
                   )}
@@ -1038,6 +1242,27 @@ export default function Home() {
                         </button>
                       </div>
                     </div>
+                  )}
+
+                  {/* ADMIN BUTTON */}
+
+                  {isAdmin && (
+                    <a
+                      href="/admin"
+                      className="btn"
+                      style={{
+                        display:
+                          "block",
+                        textAlign:
+                          "center",
+                        textDecoration:
+                          "none",
+                        marginTop:
+                          "12px",
+                      }}
+                    >
+                      ⚙️ ADMIN
+                    </a>
                   )}
                 </>
               )}
