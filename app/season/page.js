@@ -41,9 +41,7 @@ export default function SeasonPage() {
 
     const { data: scores, error: scoreError } = await db
       .from("round_scores")
-      .select(
-        "round_id,player_id,match_points,position,entered"
-      )
+      .select("round_id,player_id,match_points,position,entered")
       .in("round_id", roundIds);
 
     if (scoreError) {
@@ -61,7 +59,9 @@ export default function SeasonPage() {
     if (playerIds.length) {
       const { data: profileData, error: profileError } = await db
         .from("profiles")
-        .select("id,display_name")
+        .select(
+          "id,display_name,season_league,season_league_start_round"
+        )
         .in("id", playerIds);
 
       if (profileError) {
@@ -73,20 +73,37 @@ export default function SeasonPage() {
       profiles = profileData || [];
     }
 
-    const names = Object.fromEntries(
-      profiles.map(p => [
-        p.id,
-        p.display_name || "Player"
-      ])
+    const profileMap = Object.fromEntries(
+      profiles.map(p => [p.id, p])
     );
 
     const totals = {};
 
     for (const score of scores || []) {
+      const profile = profileMap[score.player_id];
+
+      if (!profile?.season_league) continue;
+
+      const round = (roundData || []).find(
+        r => r.id === score.round_id
+      );
+
+      if (!round) continue;
+
+      const startRound = profile.season_league_start_round;
+
+      if (
+        startRound !== null &&
+        startRound !== undefined &&
+        round.round_number < startRound
+      ) {
+        continue;
+      }
+
       if (!totals[score.player_id]) {
         totals[score.player_id] = {
           player_id: score.player_id,
-          name: names[score.player_id] || "Player",
+          name: profile.display_name || "Player",
           total: 0,
           rounds: {}
         };
@@ -113,18 +130,17 @@ export default function SeasonPage() {
     <main className="wrap">
 
       <div className="card">
-        <div className="muted">SEASON LEADERBOARD</div>
+        <div className="muted">SEASON LEAGUE</div>
 
         <h2>Pick 7 Season</h2>
 
         <p className="muted">
-          Your season total is the actual Pick 7 points
-          you score in every round.
+          Only players who have joined the Season League are shown.
+          Points count from the round they joined.
         </p>
 
         <p className="muted">
-          Exact score = 10 points • Correct result = 6 points
-          • Wrong = 0
+          Exact score = 10 points • Correct result = 6 points • Wrong = 0
         </p>
       </div>
 
@@ -136,9 +152,7 @@ export default function SeasonPage() {
 
       {!loading && message && (
         <div className="card">
-          <div className="notice">
-            {message}
-          </div>
+          <div className="notice">{message}</div>
         </div>
       )}
 
@@ -147,8 +161,7 @@ export default function SeasonPage() {
           <h3>No season scores yet</h3>
 
           <p className="muted">
-            The season leaderboard will appear after
-            the first round has been scored.
+            The Season League table will appear after a round has been scored.
           </p>
         </div>
       )}
@@ -167,7 +180,7 @@ export default function SeasonPage() {
                   <th>Pos</th>
                   <th>Player</th>
 
-                  {rounds.map(r => (
+                  {(roundData || []).map(r => (
                     <th
                       key={r.id}
                       className="right"
@@ -197,7 +210,7 @@ export default function SeasonPage() {
                       </strong>
                     </td>
 
-                    {rounds.map(r => (
+                    {(roundData || []).map(r => (
                       <td
                         key={r.id}
                         className="right"
