@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
@@ -65,10 +66,42 @@ export default function Nav() {
       checkPicksAccess();
     };
 
+    const handlePicksSubmitted = () => {
+      setCanViewPicks(true);
+    };
+
+    const handleAuthChanged = () => {
+      checkPicksAccess();
+    };
+
     window.addEventListener("focus", handleFocus);
 
+    window.addEventListener(
+      "pick7:picks-submitted",
+      handlePicksSubmitted
+    );
+
+    window.addEventListener(
+      "pick7:auth-changed",
+      handleAuthChanged
+    );
+
     return () => {
-      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener(
+        "focus",
+        handleFocus
+      );
+
+      window.removeEventListener(
+        "pick7:picks-submitted",
+        handlePicksSubmitted
+      );
+
+      window.removeEventListener(
+        "pick7:auth-changed",
+        handleAuthChanged
+      );
+
       authListener?.subscription?.unsubscribe();
     };
   }, []);
@@ -76,31 +109,31 @@ export default function Nav() {
   return (
     <nav className="nav">
 
-      <a href="/">
+      <Link href="/">
         ⚽
         <small>Play</small>
-      </a>
+      </Link>
 
-      <a href="/history">
+      <Link href="/history">
         📜
         <small>History</small>
-      </a>
+      </Link>
 
-      <a href="/competition">
+      <Link href="/competition">
         🏆
         <small>5 Rounds</small>
-      </a>
+      </Link>
 
-      <a href="/season">
+      <Link href="/season">
         📊
         <small>Season</small>
-      </a>
+      </Link>
 
       {canViewPicks ? (
-        <a href="/players-picks">
+        <Link href="/players-picks">
           👥
           <small>Picks</small>
-        </a>
+        </Link>
       ) : (
         <span
           className="nav-disabled"
