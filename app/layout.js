@@ -1,5 +1,5 @@
 import "./globals.css";
-import Link from "next/link";
+import Nav from "./Nav";
 
 export const metadata = {
   title: "Pick 7",
@@ -24,29 +24,7 @@ export default function Layout({ children }) {
         </div>
       </header>
 
-      <nav className="nav">
-
-        <Link href="/">
-          ⚽
-          <small>Play</small>
-        </Link>
-
-        <Link href="/history">
-          📜
-          <small>History</small>
-        </Link>
-
-        <Link href="/competition">
-          🏆
-          <small>5 Rounds</small>
-        </Link>
-
-        <Link href="/season">
-          📊
-          <small>Season</small>
-        </Link>
-
-      </nav>
+      <Nav />
 
       {children}
 
@@ -61,7 +39,6 @@ export default function Layout({ children }) {
           `,
         }}
       />
-
     </>
   );
 }
