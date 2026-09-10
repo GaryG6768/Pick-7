@@ -111,7 +111,11 @@ export default function Home() {
     const { data } =
       await supabase().auth.getUser();
 
-    if (!data?.user) return;
+    if (!data?.user) {
+      setUser(null);
+      setIsAdmin(false);
+      return;
+    }
 
     setUser(data.user);
 
@@ -385,13 +389,31 @@ export default function Home() {
     }));
 
     /*
-      Automatically move to the next
-      score box after entering a score.
+      MOVE TO THE NEXT SCORE BOX
 
-      We use setTimeout so the current
-      input has time to update before
-      focus moves.
+      This is deliberately done immediately
+      from the input event rather than using a
+      delayed timeout. This is more reliable on
+      Android/mobile keyboards.
+
+      Order:
+
+      Game 1 Home
+      Game 1 Away
+      Game 2 Home
+      Game 2 Away
+      Game 3 Home
+      Game 3 Away
+      Game 4 Home
+      Game 4 Away
+      Game 5 Home
+      Game 5 Away
+      Game 6 Home
+      Game 6 Away
+      Game 7 Home
+      Game 7 Away
     */
+
     if (
       value !== "" &&
       inputIndex !== undefined
@@ -399,20 +421,22 @@ export default function Home() {
       const nextIndex =
         inputIndex + 1;
 
-      if (
+      const nextInput =
         scoreRefs.current[
           nextIndex
-        ]
-      ) {
-        setTimeout(() => {
-          scoreRefs.current[
-            nextIndex
-          ].focus();
+        ];
 
-          scoreRefs.current[
-            nextIndex
-          ].select?.();
-        }, 50);
+      if (nextInput) {
+        nextInput.focus();
+
+        try {
+          nextInput.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        } catch (error) {
+          // Ignore scrolling errors.
+        }
       }
     }
   }
@@ -506,6 +530,7 @@ export default function Home() {
     );
 
     setPassword("");
+
     setMessage(
       "You are signed in."
     );
@@ -555,6 +580,7 @@ export default function Home() {
     }
 
     setChangingPassword(true);
+
     setMessage(
       "Changing your passcode..."
     );
@@ -779,6 +805,7 @@ export default function Home() {
           round &&
           games.length > 0 && (
             <>
+
               {!locked &&
                 lockTime && (
                   <div className="notice">
@@ -815,6 +842,7 @@ export default function Home() {
                       "18px",
                   }}
                 >
+
                   <h3>
                     🔐 SIGN IN TO PLAY
                   </h3>
@@ -830,6 +858,7 @@ export default function Home() {
                       signIn
                     }
                   >
+
                     <select
                       value={
                         playerName
@@ -844,6 +873,7 @@ export default function Home() {
                         )
                       }
                     >
+
                       <option value="">
                         Select your player name
                       </option>
@@ -864,6 +894,7 @@ export default function Home() {
                           </option>
                         )
                       )}
+
                     </select>
 
                     <input
@@ -887,7 +918,9 @@ export default function Home() {
                     <button type="submit">
                       SIGN IN
                     </button>
+
                   </form>
+
                 </div>
               )}
 
@@ -901,6 +934,7 @@ export default function Home() {
                     !locked
                       ? 1
                       : 0.65,
+
                   pointerEvents:
                     user &&
                     !submitted &&
@@ -909,6 +943,7 @@ export default function Home() {
                       : "none",
                 }}
               >
+
                 <p className="muted">
                   {user
                     ? "Predict the exact score for every match."
@@ -920,6 +955,7 @@ export default function Home() {
                     game,
                     index
                   ) => {
+
                     const prediction =
                       predictions[
                         game.id
@@ -938,10 +974,10 @@ export default function Home() {
                           game.id
                         }
                       >
+
                         <div className="fixtureNumber">
                           GAME{" "}
-                          {index +
-                            1}
+                          {index + 1}
                         </div>
 
                         <div className="kickoff">
@@ -952,7 +988,10 @@ export default function Home() {
 
                         <div className="teams">
 
+                          {/* HOME TEAM */}
+
                           <div className="team">
+
                             <strong>
                               {
                                 game.home_team
@@ -996,11 +1035,14 @@ export default function Home() {
                                 )
                               }
                             />
+
                           </div>
 
                           <div className="vs">
                             V
                           </div>
+
+                          {/* AWAY TEAM */}
 
                           <div className="team">
 
@@ -1049,11 +1091,14 @@ export default function Home() {
                             </strong>
 
                           </div>
+
                         </div>
+
                       </div>
                     );
                   }
                 )}
+
               </div>
 
               {message && (
@@ -1066,6 +1111,7 @@ export default function Home() {
 
               {user && (
                 <>
+
                   <p className="muted">
                     👤 Signed in.
                   </p>
@@ -1115,6 +1161,7 @@ export default function Home() {
 
                   {submitted && (
                     <>
+
                       <div className="notice">
                         ✅ Your picks are locked in.
                       </div>
@@ -1144,6 +1191,7 @@ export default function Home() {
                         </button>
 
                       </div>
+
                     </>
                   )}
 
@@ -1155,6 +1203,7 @@ export default function Home() {
                           "14px",
                       }}
                     >
+
                       <h3>
                         Change Passcode
                       </h3>
@@ -1173,6 +1222,7 @@ export default function Home() {
                           gap: "10px",
                         }}
                       >
+
                         <input
                           type="password"
                           placeholder="New passcode"
@@ -1240,7 +1290,9 @@ export default function Home() {
                         >
                           CANCEL
                         </button>
+
                       </div>
+
                     </div>
                   )}
 
@@ -1264,8 +1316,10 @@ export default function Home() {
                       ⚙️ ADMIN
                     </a>
                   )}
+
                 </>
               )}
+
             </>
           )}
 
@@ -1274,6 +1328,7 @@ export default function Home() {
             {message}
           </div>
         )}
+
       </div>
     </main>
   );
