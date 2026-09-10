@@ -6,46 +6,53 @@ import { supabase } from "../../lib/supabase";
 export default function PlayersPicksPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     loadPicks();
   }, []);
 
-  async function loadPicks() {
-    setLoading(true);
+  async function loadPicks(isRefresh = false) {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
     setMessage("");
 
-    const {
-      data: result,
-      error,
-    } = await supabase().functions.invoke(
-      "players-picks",
-      {
-        body: {},
+    try {
+      const { data: result, error } =
+        await supabase().rpc("get_players_picks_client");
+
+      if (error) {
+        console.error("Players' Picks error:", error);
+        setMessage(
+          error.message ||
+            "Unable to load Players' Picks."
+        );
+        return;
       }
-    );
 
-    if (error) {
+      if (!result?.ok) {
+        setMessage(
+          "Submit all 7 picks before viewing the other players' picks."
+        );
+        return;
+      }
+
+      setData(result);
+    } catch (error) {
+      console.error("Players' Picks error:", error);
       setMessage(
-        error.message ||
+        error?.message ||
           "Unable to load Players' Picks."
       );
+    } finally {
       setLoading(false);
-      return;
+      setRefreshing(false);
     }
-
-    if (!result?.ok) {
-      setMessage(
-        result?.error ||
-          "Unable to load Players' Picks."
-      );
-      setLoading(false);
-      return;
-    }
-
-    setData(result);
-    setLoading(false);
   }
 
   function formatKickoff(kickoff) {
@@ -68,7 +75,19 @@ export default function PlayersPicksPage() {
       <main className="page">
         <section className="card">
           <h1>👥 Players' Picks</h1>
-          <p>Loading players' picks...</p>
+
+          <div
+            style={{
+              marginTop: 18,
+              padding: 18,
+              borderRadius: 12,
+              background: "#101f2e",
+              border: "1px solid #29465e",
+              color: "#9db1c2",
+            }}
+          >
+            Loading players' picks...
+          </div>
         </section>
       </main>
     );
@@ -88,6 +107,7 @@ export default function PlayersPicksPage() {
               background: "#162637",
               border: "1px solid #29465e",
               color: "#dce8f2",
+              lineHeight: 1.5,
             }}
           >
             {message}
@@ -95,7 +115,7 @@ export default function PlayersPicksPage() {
 
           <button
             className="btn"
-            onClick={loadPicks}
+            onClick={() => loadPicks(true)}
             style={{
               marginTop: 18,
               width: "100%",
@@ -111,6 +131,7 @@ export default function PlayersPicksPage() {
   return (
     <main className="page">
       <section className="card">
+
         <div
           style={{
             display: "flex",
@@ -137,12 +158,16 @@ export default function PlayersPicksPage() {
 
           <button
             className="btn"
-            onClick={loadPicks}
+            onClick={() => loadPicks(true)}
+            disabled={refreshing}
             style={{
               minWidth: 90,
+              opacity: refreshing ? 0.6 : 1,
             }}
           >
-            🔄 REFRESH
+            {refreshing
+              ? "LOADING..."
+              : "🔄 REFRESH"}
           </button>
         </div>
 
@@ -162,9 +187,11 @@ export default function PlayersPicksPage() {
           <strong>
             Submitted players only
           </strong>
+
           <br />
+
           Your picks are shown along with every
-          other player who has submitted their
+          other player who has submitted all
           seven picks.
         </div>
 
@@ -186,7 +213,8 @@ export default function PlayersPicksPage() {
                 color: "#9db1c2",
               }}
             >
-              No other players have submitted yet.
+              No players have submitted all 7
+              picks yet.
             </div>
           ) : (
             data.players.map((player) => (
@@ -200,6 +228,7 @@ export default function PlayersPicksPage() {
                   background: "#0d1b29",
                 }}
               >
+
                 <div
                   style={{
                     padding: "13px 15px",
@@ -212,6 +241,19 @@ export default function PlayersPicksPage() {
                   }}
                 >
                   {player.display_name}
+
+                  {player.is_you && (
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        fontSize: 12,
+                        color: "#8ee8b1",
+                        fontWeight: 800,
+                      }}
+                    >
+                      YOU
+                    </span>
+                  )}
                 </div>
 
                 <div
@@ -245,6 +287,7 @@ export default function PlayersPicksPage() {
                               "#101f2e",
                           }}
                         >
+
                           <div
                             style={{
                               color: "#7f9ab0",
@@ -290,17 +333,16 @@ export default function PlayersPicksPage() {
                           <div
                             style={{
                               minWidth: 52,
-                              textAlign:
-                                "center",
+                              textAlign: "center",
                               fontSize: 20,
                               fontWeight: 900,
-                              color:
-                                "#ffffff",
+                              color: "#ffffff",
                             }}
                           >
                             {pick ? (
                               <>
                                 {pick.home}
+
                                 <span
                                   style={{
                                     color:
@@ -311,12 +353,14 @@ export default function PlayersPicksPage() {
                                 >
                                   -
                                 </span>
+
                                 {pick.away}
                               </>
                             ) : (
                               "-"
                             )}
                           </div>
+
                         </div>
                       );
                     }
@@ -326,6 +370,7 @@ export default function PlayersPicksPage() {
             ))
           )}
         </div>
+
       </section>
     </main>
   );
