@@ -57,7 +57,7 @@ button,input,select{font:inherit}
   top:76px;
   z-index:29;
   display:grid;
-  grid-template-columns:repeat(4,1fr);
+  grid-template-columns:repeat(5,1fr);
   gap:5px;
   padding:7px 9px;
   background:rgba(7,20,34,.97);
