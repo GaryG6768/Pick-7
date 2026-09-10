@@ -28,8 +28,10 @@ export default function PlayersAdmin() {
   const [players, setPlayers] = useState([]);
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [seasonLeague, setSeasonLeague] = useState(true);
   const [message, setMessage] = useState("Loading...");
   const [adding, setAdding] = useState(false);
+  const [updating, setUpdating] = useState(null);
 
   useEffect(() => {
     loadPlayers();
@@ -58,7 +60,9 @@ export default function PlayersAdmin() {
 
     const { data, error } = await supabase()
       .from("profiles")
-      .select("id,display_name,is_admin")
+      .select(
+        "id,display_name,is_admin,active,season_league,season_league_start_round"
+      )
       .order("display_name");
 
     if (error) {
@@ -90,6 +94,7 @@ export default function PlayersAdmin() {
         body: {
           display_name: name,
           password,
+          season_league: seasonLeague,
         },
       }
     );
@@ -109,25 +114,90 @@ export default function PlayersAdmin() {
       return;
     }
 
-    setPlayers(prev => [
-  ...prev,
-  {
-    id: data.player_id,
-    display_name: data.display_name,
-    is_admin: false,
-  },
-]);
+    setPlayers((prev) => [
+      ...prev,
+      {
+        id: data.player_id,
+        display_name: data.display_name,
+        is_admin: false,
+        active: true,
+        season_league: seasonLeague,
+        season_league_start_round: seasonLeague ? 1 : null,
+      },
+    ]);
 
-setName("");
-setPassword("");
-setMessage(`${data.display_name} has been created successfully.`);
-setAdding(false);
+    setName("");
+    setPassword("");
+    setSeasonLeague(true);
+    setMessage(`${data.display_name} has been created successfully.`);
+    setAdding(false);
   }
 
-  const existingNames = players.map(player => player.display_name);
+  async function toggleSeasonLeague(player) {
+    const newValue = !player.season_league;
+
+    setUpdating(player.id);
+    setMessage(
+      `${newValue ? "Joining" : "Removing"} ${
+        player.display_name
+      } ${newValue ? "from" : "from"} the Season League...`
+    );
+
+    const { data, error } = await supabase().functions.invoke(
+      "admin-update-player",
+      {
+        body: {
+          player_id: player.id,
+          season_league: newValue,
+        },
+      }
+    );
+
+    if (error) {
+      setMessage("Could not update player: " + error.message);
+      setUpdating(null);
+      return;
+    }
+
+    if (!data?.ok) {
+      setMessage(
+        "Could not update player: " +
+          (data?.error || "Unknown error")
+      );
+      setUpdating(null);
+      return;
+    }
+
+    setPlayers((prev) =>
+      prev.map((p) =>
+        p.id === player.id
+          ? {
+              ...p,
+              season_league: data.season_league,
+              season_league_start_round:
+                data.season_league_start_round,
+            }
+          : p
+      )
+    );
+
+    setMessage(
+      `${player.display_name} ${
+        newValue
+          ? "has joined the Season League."
+          : "has been removed from the Season League."
+      }`
+    );
+
+    setUpdating(null);
+  }
+
+  const existingNames = players.map(
+    (player) => player.display_name
+  );
 
   const availablePlayers = PLAYER_NAMES.filter(
-    player => !existingNames.includes(player)
+    (player) => !existingNames.includes(player)
   );
 
   return (
@@ -144,7 +214,7 @@ setAdding(false);
 
         <select
           value={name}
-          onChange={e => setName(e.target.value)}
+          onChange={(e) => setName(e.target.value)}
           style={{
             width: "100%",
             padding: 14,
@@ -158,7 +228,7 @@ setAdding(false);
         >
           <option value="">Select player name</option>
 
-          {availablePlayers.map(player => (
+          {availablePlayers.map((player) => (
             <option key={player} value={player}>
               {player}
             </option>
@@ -169,7 +239,7 @@ setAdding(false);
           type="password"
           placeholder="Initial password"
           value={password}
-          onChange={e => setPassword(e.target.value)}
+          onChange={(e) => setPassword(e.target.value)}
           style={{
             width: "100%",
             padding: 14,
@@ -182,6 +252,48 @@ setAdding(false);
           }}
         />
 
+        <div
+          style={{
+            padding: 14,
+            marginBottom: 12,
+            border: "1px solid #42627e",
+            borderRadius: 8,
+            background: "#07111f",
+          }}
+        >
+          <div
+            style={{
+              fontWeight: 800,
+              marginBottom: 8,
+            }}
+          >
+            Season League
+          </div>
+
+          <select
+            value={seasonLeague ? "yes" : "no"}
+            onChange={(e) =>
+              setSeasonLeague(e.target.value === "yes")
+            }
+            style={{
+              width: "100%",
+              padding: 12,
+              background: "#102238",
+              color: "white",
+              border: "1px solid #42627e",
+              borderRadius: 8,
+              fontSize: 16,
+            }}
+          >
+            <option value="yes">
+              YES — Include in Season League
+            </option>
+            <option value="no">
+              NO — Pick 7 only
+            </option>
+          </select>
+        </div>
+
         <button
           className="btn"
           onClick={addPlayer}
@@ -191,7 +303,10 @@ setAdding(false);
         </button>
 
         {message && (
-          <div className="notice" style={{ marginTop: 20 }}>
+          <div
+            className="notice"
+            style={{ marginTop: 20 }}
+          >
             {message}
           </div>
         )}
@@ -205,26 +320,99 @@ setAdding(false);
             No players found.
           </p>
         ) : (
-          players.map(player => (
+          players.map((player) => (
             <div
               key={player.id}
               style={{
-                padding: 12,
-                marginBottom: 8,
+                padding: 14,
+                marginBottom: 10,
                 border: "1px solid #42627e",
-                borderRadius: 8,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
+                borderRadius: 10,
+                background: "#07111f",
               }}
             >
-              <span>{player.display_name}</span>
-
-              {player.is_admin && (
-                <span className="muted">
-                  ADMIN
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 10,
+                  marginBottom: 10,
+                }}
+              >
+                <span
+                  style={{
+                    fontWeight: 800,
+                    fontSize: 16,
+                  }}
+                >
+                  {player.display_name}
                 </span>
-              )}
+
+                {player.is_admin && (
+                  <span className="muted">
+                    ADMIN
+                  </span>
+                )}
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: player.season_league
+                      ? "#25d477"
+                      : "#a9b8c4",
+                  }}
+                >
+                  {player.season_league
+                    ? "🏆 SEASON LEAGUE"
+                    : "⚽ PICK 7 ONLY"}
+                </span>
+
+                {!player.is_admin && (
+                  <button
+                    className="btn"
+                    onClick={() =>
+                      toggleSeasonLeague(player)
+                    }
+                    disabled={updating === player.id}
+                    style={{
+                      minHeight: 40,
+                      padding: "8px 12px",
+                      fontSize: 12,
+                    }}
+                  >
+                    {updating === player.id
+                      ? "UPDATING..."
+                      : player.season_league
+                      ? "REMOVE"
+                      : "JOIN LEAGUE"}
+                  </button>
+                )}
+              </div>
+
+              {player.season_league &&
+                player.season_league_start_round && (
+                  <div
+                    className="muted"
+                    style={{
+                      marginTop: 8,
+                      fontSize: 12,
+                    }}
+                  >
+                    Season League points count from Round{" "}
+                    {player.season_league_start_round}.
+                  </div>
+                )}
             </div>
           ))
         )}
