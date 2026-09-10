@@ -121,15 +121,20 @@ export default function PlayersAdmin() {
         display_name: data.display_name,
         is_admin: false,
         active: true,
-        season_league: seasonLeague,
-        season_league_start_round: seasonLeague ? 1 : null,
+        season_league: data.season_league,
+        season_league_start_round:
+          data.season_league_start_round,
       },
     ]);
 
     setName("");
     setPassword("");
     setSeasonLeague(true);
-    setMessage(`${data.display_name} has been created successfully.`);
+
+    setMessage(
+      `${data.display_name} has been created successfully.`
+    );
+
     setAdding(false);
   }
 
@@ -137,10 +142,11 @@ export default function PlayersAdmin() {
     const newValue = !player.season_league;
 
     setUpdating(player.id);
+
     setMessage(
-      `${newValue ? "Joining" : "Removing"} ${
-        player.display_name
-      } ${newValue ? "from" : "from"} the Season League...`
+      newValue
+        ? `${player.display_name} is joining the Season League...`
+        : `${player.display_name} is being removed from the Season League...`
     );
 
     const { data, error } = await supabase().functions.invoke(
@@ -154,7 +160,9 @@ export default function PlayersAdmin() {
     );
 
     if (error) {
-      setMessage("Could not update player: " + error.message);
+      setMessage(
+        "Could not update player: " + error.message
+      );
       setUpdating(null);
       return;
     }
@@ -173,20 +181,19 @@ export default function PlayersAdmin() {
         p.id === player.id
           ? {
               ...p,
-              season_league: data.season_league,
+              season_league:
+                data.player.season_league,
               season_league_start_round:
-                data.season_league_start_round,
+                data.player.season_league_start_round,
             }
           : p
       )
     );
 
     setMessage(
-      `${player.display_name} ${
-        newValue
-          ? "has joined the Season League."
-          : "has been removed from the Season League."
-      }`
+      newValue
+        ? `${player.display_name} has joined the Season League.`
+        : `${player.display_name} has been removed from the Season League.`
     );
 
     setUpdating(null);
@@ -204,7 +211,10 @@ export default function PlayersAdmin() {
     <main className="wrap">
 
       <div className="card">
-        <div className="muted">PICK 7 ADMIN</div>
+
+        <div className="muted">
+          PICK 7 ADMIN
+        </div>
 
         <h2>Players</h2>
 
@@ -226,13 +236,20 @@ export default function PlayersAdmin() {
             fontSize: 16,
           }}
         >
-          <option value="">Select player name</option>
+
+          <option value="">
+            Select player name
+          </option>
 
           {availablePlayers.map((player) => (
-            <option key={player} value={player}>
+            <option
+              key={player}
+              value={player}
+            >
               {player}
             </option>
           ))}
+
         </select>
 
         <input
@@ -261,6 +278,7 @@ export default function PlayersAdmin() {
             background: "#07111f",
           }}
         >
+
           <div
             style={{
               fontWeight: 800,
@@ -273,7 +291,9 @@ export default function PlayersAdmin() {
           <select
             value={seasonLeague ? "yes" : "no"}
             onChange={(e) =>
-              setSeasonLeague(e.target.value === "yes")
+              setSeasonLeague(
+                e.target.value === "yes"
+              )
             }
             style={{
               width: "100%",
@@ -285,13 +305,17 @@ export default function PlayersAdmin() {
               fontSize: 16,
             }}
           >
+
             <option value="yes">
               YES — Include in Season League
             </option>
+
             <option value="no">
               NO — Pick 7 only
             </option>
+
           </select>
+
         </div>
 
         <button
@@ -299,7 +323,9 @@ export default function PlayersAdmin() {
           onClick={addPlayer}
           disabled={adding || !name}
         >
-          {adding ? "CREATING..." : "ADD PLAYER"}
+          {adding
+            ? "CREATING..."
+            : "ADD PLAYER"}
         </button>
 
         {message && (
@@ -310,9 +336,11 @@ export default function PlayersAdmin() {
             {message}
           </div>
         )}
+
       </div>
 
       <div className="card">
+
         <h3>Current Players</h3>
 
         {players.length === 0 ? (
@@ -321,6 +349,7 @@ export default function PlayersAdmin() {
           </p>
         ) : (
           players.map((player) => (
+
             <div
               key={player.id}
               style={{
@@ -331,6 +360,7 @@ export default function PlayersAdmin() {
                 background: "#07111f",
               }}
             >
+
               <div
                 style={{
                   display: "flex",
@@ -340,6 +370,7 @@ export default function PlayersAdmin() {
                   marginBottom: 10,
                 }}
               >
+
                 <span
                   style={{
                     fontWeight: 800,
@@ -354,6 +385,7 @@ export default function PlayersAdmin() {
                     ADMIN
                   </span>
                 )}
+
               </div>
 
               <div
@@ -364,6 +396,7 @@ export default function PlayersAdmin() {
                   gap: 10,
                 }}
               >
+
                 <span
                   style={{
                     fontSize: 13,
@@ -384,7 +417,9 @@ export default function PlayersAdmin() {
                     onClick={() =>
                       toggleSeasonLeague(player)
                     }
-                    disabled={updating === player.id}
+                    disabled={
+                      updating === player.id
+                    }
                     style={{
                       minHeight: 40,
                       padding: "8px 12px",
@@ -398,6 +433,7 @@ export default function PlayersAdmin() {
                       : "JOIN LEAGUE"}
                   </button>
                 )}
+
               </div>
 
               {player.season_league &&
@@ -413,9 +449,12 @@ export default function PlayersAdmin() {
                     {player.season_league_start_round}.
                   </div>
                 )}
+
             </div>
+
           ))
         )}
+
       </div>
 
     </main>
