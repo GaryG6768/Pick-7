@@ -31,19 +31,268 @@ export default function Home() {
 
   const scoreRefs = useRef([]);
 
+  /* -------------------------------------------------
+     LOAD THE APP
+     ------------------------------------------------- */
+
   useEffect(() => {
-    loadRound();
-    checkUser();
-    loadPlayers();
+    loadInitialData();
   }, []);
+
+  async function loadInitialData() {
+    setLoading(true);
+
+    try {
+      const db = supabase();
+
+      /*
+        Get the current user and open round at the
+        same time. Neither depends on the other.
+      */
+      const [
+        {
+          data: { user: currentUser },
+        },
+        { data: roundData, error: roundError },
+      ] = await Promise.all([
+        db.auth.getUser(),
+
+        db
+          .from("rounds")
+          .select("id, round_number, status")
+          .eq("status", "open")
+          .order("round_number", {
+            ascending: false,
+          })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+
+      if (roundError) throw roundError;
+
+      if (currentUser) {
+        setUser(currentUser);
+      }
+
+      /*
+        Load the player list separately.
+        It is not allowed to hold up the games.
+      */
+      loadPlayers();
+
+      if (currentUser) {
+        loadUserProfile(currentUser.id);
+      }
+
+      if (!roundData) {
+        setMessage("No round is currently open.");
+        setLoading(false);
+        return;
+      }
+
+      setRound(roundData);
+
+      /*
+        These requests are independent, so run them
+        together.
+      */
+      const [
+        { data: links, error: linksError },
+        { data: alertData },
+        { data: savedPredictions },
+      ] = await Promise.all([
+        db
+          .from("round_fixtures")
+          .select("fixture_number, fixture_id")
+          .eq("round_id", roundData.id)
+          .order("fixture_number", {
+            ascending: true,
+          }),
+
+        db
+          .from("fixture_change_alerts")
+          .select("id, message, created_at")
+          .eq("round_id", roundData.id)
+          .order("created_at", {
+            ascending: false,
+          }),
+
+        currentUser
+          ? db
+              .from("predictions")
+              .select(
+                "fixture_id, predicted_home, predicted_away"
+              )
+              .eq("round_id", roundData.id)
+              .eq("player_id", currentUser.id)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      if (linksError) throw linksError;
+
+      setAlerts(alertData || []);
+
+      const fixtureIds = (links || [])
+        .map((item) => item.fixture_id)
+        .filter(Boolean);
+
+      if (fixtureIds.length === 0) {
+        throw new Error(
+          "This round currently has no fixtures."
+        );
+      }
+
+      /*
+        Load all seven fixtures in one request.
+      */
+      const {
+        data: fixtures,
+        error: fixtureError,
+      } = await db
+        .from("fixtures")
+        .select(
+          "id, home_team, away_team, kickoff"
+        )
+        .in("id", fixtureIds);
+
+      if (fixtureError) throw fixtureError;
+
+      const byId = Object.fromEntries(
+        (fixtures || []).map((fixture) => [
+          fixture.id,
+          fixture,
+        ])
+      );
+
+      const orderedGames = (links || [])
+        .map((link) => byId[link.fixture_id])
+        .filter(Boolean);
+
+      if (orderedGames.length === 0) {
+        throw new Error(
+          "The selected fixtures could not be loaded."
+        );
+      }
+
+      /*
+        Work out the earliest kickoff.
+      */
+      const earliestKickoff = Math.min(
+        ...orderedGames.map((game) =>
+          new Date(game.kickoff).getTime()
+        )
+      );
+
+      setLockTime(
+        new Date(
+          earliestKickoff
+        ).toISOString()
+      );
+
+      setLocked(
+        earliestKickoff <= Date.now()
+      );
+
+      /*
+        Restore saved predictions immediately.
+      */
+      if (
+        currentUser &&
+        savedPredictions &&
+        savedPredictions.length === orderedGames.length
+      ) {
+        const saved = {};
+
+        savedPredictions.forEach((prediction) => {
+          saved[prediction.fixture_id] = {
+            home: prediction.predicted_home,
+            away: prediction.predicted_away,
+          };
+        });
+
+        setPredictions(saved);
+        setSubmitted(true);
+      }
+
+      /*
+        IMPORTANT:
+        Put the games on screen as soon as the essential
+        data is ready.
+      */
+      setGames(orderedGames);
+      setMessage("");
+    } catch (error) {
+      console.error(
+        "Unable to load Pick 7:",
+        error
+      );
+
+      setMessage(
+        "Unable to load Pick 7: " +
+          (error?.message || "Unknown error")
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadUserProfile(userId) {
+    try {
+      const { data: profile } = await supabase()
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", userId)
+        .maybeSingle();
+
+      setIsAdmin(Boolean(profile?.is_admin));
+    } catch (error) {
+      console.error(
+        "Could not load user profile:",
+        error
+      );
+    }
+  }
+
+  async function loadPlayers() {
+    try {
+      const { data, error } =
+        await supabase().functions.invoke(
+          "player-login",
+          {
+            body: {
+              action: "list",
+            },
+          }
+        );
+
+      if (error) {
+        console.error(
+          "Could not load players:",
+          error
+        );
+        return;
+      }
+
+      setPlayers(data?.players || []);
+    } catch (error) {
+      console.error(
+        "Could not load players:",
+        error
+      );
+    }
+  }
+
+  /* -------------------------------------------------
+     COUNTDOWN
+     ------------------------------------------------- */
 
   useEffect(() => {
     if (!lockTime) return;
 
     function updateLock() {
-      const now = Date.now();
-      const target = new Date(lockTime).getTime();
-      const difference = target - now;
+      const difference =
+        new Date(lockTime).getTime() -
+        Date.now();
 
       if (difference <= 0) {
         setLocked(true);
@@ -67,7 +316,8 @@ export default function Home() {
         (totalSeconds % 3600) / 60
       );
 
-      const seconds = totalSeconds % 60;
+      const seconds =
+        totalSeconds % 60;
 
       if (days > 0) {
         setCountdown(
@@ -104,264 +354,190 @@ export default function Home() {
       1000
     );
 
-    return () => clearInterval(timer);
+    return () =>
+      clearInterval(timer);
   }, [lockTime]);
 
-  async function checkUser() {
-    const { data } =
-      await supabase().auth.getUser();
+  /* -------------------------------------------------
+     SIGN IN
+     ------------------------------------------------- */
 
-    if (!data?.user) {
-      setUser(null);
-      setIsAdmin(false);
-      return;
-    }
+  async function signIn(event) {
+    event.preventDefault();
 
-    setUser(data.user);
-
-    const { data: profile } =
-      await supabase()
-        .from("profiles")
-        .select("is_admin")
-        .eq("id", data.user.id)
-        .maybeSingle();
-
-    setIsAdmin(Boolean(profile?.is_admin));
-  }
-
-  async function loadPlayers() {
-    const { data, error } =
-      await supabase().functions.invoke(
-        "player-login",
-        {
-          body: { action: "list" },
-        }
-      );
-
-    if (error) {
-      console.error(
-        "Could not load players:",
-        error
+    if (!playerName) {
+      setMessage(
+        "Please select your player name."
       );
       return;
     }
 
-    setPlayers(data?.players || []);
-  }
+    if (!password) {
+      setMessage(
+        "Please enter your password."
+      );
+      return;
+    }
 
-  async function loadRound() {
+    setMessage("Signing in...");
+
     try {
-      setLoading(true);
+      const { data, error } =
+        await supabase().functions.invoke(
+          "player-login",
+          {
+            body: {
+              display_name: playerName,
+              password,
+            },
+          }
+        );
 
-      const db = supabase();
-
-      const {
-        data: roundData,
-        error: roundError,
-      } = await db
-        .from("rounds")
-        .select(
-          "id, round_number, status"
-        )
-        .eq("status", "open")
-        .order("round_number", {
-          ascending: false,
-        })
-        .limit(1)
-        .maybeSingle();
-
-      if (roundError) throw roundError;
-
-      if (!roundData) {
+      if (error) {
         setMessage(
-          "No round is currently open."
+          "Sign-in failed: " +
+            error.message
+        );
+        return;
+      }
+
+      if (
+        !data?.access_token ||
+        !data?.refresh_token
+      ) {
+        setMessage(
+          "Sign-in failed: Invalid login response."
         );
         return;
       }
 
       const {
-        data: alertData,
-        error: alertError,
-      } = await db
-        .from("fixture_change_alerts")
-        .select(
-          "id, message, created_at"
-        )
-        .eq(
-          "round_id",
-          roundData.id
-        )
-        .order("created_at", {
-          ascending: false,
+        data: sessionData,
+        error: sessionError,
+      } =
+        await supabase().auth.setSession({
+          access_token:
+            data.access_token,
+          refresh_token:
+            data.refresh_token,
         });
 
-      if (alertError) throw alertError;
+      if (sessionError) {
+        setMessage(
+          "Sign-in failed: " +
+            sessionError.message
+        );
+        return;
+      }
 
-      setAlerts(alertData || []);
+      setUser(sessionData.user);
 
-      const {
-        data: links,
-        error: linksError,
-      } = await db
-        .from("round_fixtures")
-        .select(
-          "fixture_number, fixture_id"
-        )
-        .eq(
-          "round_id",
-          roundData.id
-        )
-        .order("fixture_number", {
-          ascending: true,
-        });
+      await loadUserProfile(
+        sessionData.user.id
+      );
 
-      if (linksError) throw linksError;
-
-      const fixtureIds =
-        (links || [])
-          .map((x) => x.fixture_id)
-          .filter(Boolean);
-
-      if (fixtureIds.length === 0) {
-        throw new Error(
-          "This round currently has no fixtures."
+      /*
+        Check for existing picks immediately
+        after signing in.
+      */
+      if (round && games.length > 0) {
+        await checkSubmitted(
+          sessionData.user,
+          round,
+          games
         );
       }
 
-      const {
-        data: fixtures,
-        error: fixtureError,
-      } = await db
-        .from("fixtures")
-        .select(
-          "id, home_team, away_team, kickoff"
-        )
-        .in("id", fixtureIds);
+      setPassword("");
 
-      if (fixtureError)
-        throw fixtureError;
-
-      const byId = Object.fromEntries(
-        (fixtures || []).map((f) => [
-          f.id,
-          f,
-        ])
+      setMessage(
+        submitted
+          ? "Your picks are already submitted and locked."
+          : "You are signed in."
       );
 
-      const orderedGames =
-        (links || [])
-          .map(
-            (x) => byId[x.fixture_id]
-          )
-          .filter(Boolean);
-
-      if (orderedGames.length === 0) {
-        throw new Error(
-          "The selected fixtures could not be loaded."
-        );
-      }
-
-      const earliestKickoff =
-        orderedGames
-          .map((game) =>
-            new Date(
-              game.kickoff
-            ).getTime()
-          )
-          .sort(
-            (a, b) => a - b
-          )[0];
-
-      setLockTime(
-        new Date(
-          earliestKickoff
-        ).toISOString()
+      window.dispatchEvent(
+        new Event("pick7:auth-changed")
       );
-
-      setLocked(
-        earliestKickoff <=
-          Date.now()
-      );
-
-      setRound(roundData);
-      setGames(orderedGames);
-      setMessage("");
     } catch (error) {
       setMessage(
-        "Unable to load Pick 7: " +
+        "Sign-in failed: " +
           (error?.message ||
             "Unknown error")
       );
-    } finally {
-      setLoading(false);
     }
   }
 
+  /* -------------------------------------------------
+     CHECK EXISTING PICKS
+     ------------------------------------------------- */
+
   async function checkSubmitted(
     currentUser,
-    currentRound
+    currentRound,
+    currentGames
   ) {
     if (
       !currentUser ||
       !currentRound ||
-      games.length === 0
+      !currentGames?.length
     ) {
       return;
     }
 
-    const {
-      data,
-      error,
-    } = await supabase()
-      .from("predictions")
-      .select(
-        "fixture_id, predicted_home, predicted_away"
-      )
-      .eq(
-        "round_id",
-        currentRound.id
-      )
-      .eq(
-        "player_id",
-        currentUser.id
-      );
+    try {
+      const {
+        data,
+        error,
+      } = await supabase()
+        .from("predictions")
+        .select(
+          "fixture_id, predicted_home, predicted_away"
+        )
+        .eq(
+          "round_id",
+          currentRound.id
+        )
+        .eq(
+          "player_id",
+          currentUser.id
+        );
 
-    if (error) return;
+      if (error) return;
 
-    if (
-      data &&
-      data.length === games.length
-    ) {
-      const saved = {};
+      if (
+        data &&
+        data.length === currentGames.length
+      ) {
+        const saved = {};
 
-      data.forEach((p) => {
-        saved[p.fixture_id] = {
-          home: p.predicted_home,
-          away: p.predicted_away,
-        };
-      });
+        data.forEach((prediction) => {
+          saved[prediction.fixture_id] = {
+            home:
+              prediction.predicted_home,
+            away:
+              prediction.predicted_away,
+          };
+        });
 
-      setPredictions(saved);
-      setSubmitted(true);
+        setPredictions(saved);
+        setSubmitted(true);
 
-      setMessage(
-        `Your ${games.length} picks are already submitted and locked.`
+        setMessage(
+          `Your ${currentGames.length} picks are already submitted and locked.`
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Could not check submitted picks:",
+        error
       );
     }
   }
 
-  useEffect(() => {
-    if (
-      user &&
-      round &&
-      games.length > 0
-    ) {
-      checkSubmitted(
-        user,
-        round
-      );
-    }
-  }, [user, round, games]);
+  /* -------------------------------------------------
+     SCORE ENTRY
+     ------------------------------------------------- */
 
   function setScore(
     id,
@@ -388,42 +564,13 @@ export default function Home() {
       },
     }));
 
-    /*
-      MOVE TO THE NEXT SCORE BOX
-
-      This is deliberately done immediately
-      from the input event rather than using a
-      delayed timeout. This is more reliable on
-      Android/mobile keyboards.
-
-      Order:
-
-      Game 1 Home
-      Game 1 Away
-      Game 2 Home
-      Game 2 Away
-      Game 3 Home
-      Game 3 Away
-      Game 4 Home
-      Game 4 Away
-      Game 5 Home
-      Game 5 Away
-      Game 6 Home
-      Game 6 Away
-      Game 7 Home
-      Game 7 Away
-    */
-
     if (
       value !== "" &&
       inputIndex !== undefined
     ) {
-      const nextIndex =
-        inputIndex + 1;
-
       const nextInput =
         scoreRefs.current[
-          nextIndex
+          inputIndex + 1
         ];
 
       if (nextInput) {
@@ -434,130 +581,203 @@ export default function Home() {
             behavior: "smooth",
             block: "center",
           });
-        } catch (error) {
-          // Ignore scrolling errors.
-        }
+        } catch (error) {}
       }
     }
   }
 
-  async function signIn(event) {
-    event.preventDefault();
+  /* -------------------------------------------------
+     SUBMIT PICKS
+     ------------------------------------------------- */
 
-    if (!playerName) {
-      setMessage(
-        "Please select your player name."
-      );
+  async function submit() {
+    if (
+      submitting ||
+      submitted ||
+      locked
+    ) {
       return;
     }
 
-    if (!password) {
+    if (!user) {
       setMessage(
-        "Please enter your password."
-      );
-      return;
-    }
-
-    setMessage("Signing in...");
-
-    const {
-      data,
-      error,
-    } = await supabase().functions.invoke(
-      "player-login",
-      {
-        body: {
-          display_name:
-            playerName,
-          password,
-        },
-      }
-    );
-
-    if (error) {
-      setMessage(
-        "Sign-in failed: " +
-          error.message
+        "Please sign in before submitting your picks."
       );
       return;
     }
 
     if (
-      !data?.access_token ||
-      !data?.refresh_token
+      !round ||
+      games.length === 0
     ) {
       setMessage(
-        "Sign-in failed: Invalid login response."
+        "There is no valid Pick 7 round available."
       );
       return;
     }
 
-    const {
-      data: sessionData,
-      error: sessionError,
-    } =
-      await supabase().auth.setSession(
-        {
-          access_token:
-            data.access_token,
-          refresh_token:
-            data.refresh_token,
-        }
-      );
+    const incomplete = games.some(
+      (game) => {
+        const prediction =
+          predictions[game.id];
 
-    if (sessionError) {
-      setMessage(
-        "Sign-in failed: " +
-          sessionError.message
-      );
-      return;
-    }
-
-    setUser(sessionData.user);
-
-    const { data: profile } =
-      await supabase()
-        .from("profiles")
-        .select("is_admin")
-        .eq(
-          "id",
-          sessionData.user.id
-        )
-        .maybeSingle();
-
-    setIsAdmin(
-      Boolean(profile?.is_admin)
+        return (
+          prediction?.home ===
+            undefined ||
+          prediction?.away ===
+            undefined ||
+          prediction?.home === "" ||
+          prediction?.away === ""
+        );
+      }
     );
 
-    setPassword("");
+    if (incomplete) {
+      setMessage(
+        `Please enter all ${games.length} scores.`
+      );
+      return;
+    }
+
+    setSubmitting(true);
 
     setMessage(
-      "You are signed in."
+      `Submitting your ${games.length} picks...`
     );
+
+    try {
+      const rows = games.map(
+        (game) => ({
+          round_id: round.id,
+          fixture_id: game.id,
+          player_id: user.id,
+          predicted_home:
+            predictions[
+              game.id
+            ].home,
+          predicted_away:
+            predictions[
+              game.id
+            ].away,
+          submitted_at:
+            new Date().toISOString(),
+        })
+      );
+
+      const { error } =
+        await supabase()
+          .from("predictions")
+          .insert(rows);
+
+      if (error) {
+        if (
+          error.code ===
+          "23505"
+        ) {
+          setSubmitted(true);
+
+          setMessage(
+            `Your ${games.length} picks are already submitted and locked.`
+          );
+
+          window.dispatchEvent(
+            new Event(
+              "pick7:picks-submitted"
+            )
+          );
+        } else if (
+          error.message
+            ?.toLowerCase()
+            .includes("locked")
+        ) {
+          setLocked(true);
+
+          setMessage(
+            "The first match has kicked off. Picks are now locked."
+          );
+        } else {
+          setMessage(
+            "Could not submit picks: " +
+              error.message
+          );
+        }
+
+        return;
+      }
+
+      setSubmitted(true);
+
+      setMessage(
+        `Your ${games.length} picks have been submitted and locked.`
+      );
+
+      /*
+        Tell the navigation bar immediately that
+        all seven picks have been submitted.
+      */
+      window.dispatchEvent(
+        new Event(
+          "pick7:picks-submitted"
+        )
+      );
+    } catch (error) {
+      setMessage(
+        "Could not submit picks: " +
+          (error?.message ||
+            "Unknown error")
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-async function signOut() {
-  // Clear the app immediately so sign-out feels instant.
-  setUser(null);
-  setIsAdmin(false);
-  setSubmitted(false);
-  setPredictions({});
-  setChangePasswordOpen(false);
-  setNewPassword("");
-  setConfirmPassword("");
-  setMessage("You have been signed out.");
+  /* -------------------------------------------------
+     SIGN OUT
+     ------------------------------------------------- */
 
-  // Finish the Supabase sign-out in the background.
-  try {
-    await supabase().auth.signOut({ scope: "local" });
-  } catch (error) {
-    console.error("Sign-out error:", error);
+  async function signOut() {
+    /*
+      Clear the interface immediately.
+    */
+    setUser(null);
+    setIsAdmin(false);
+    setSubmitted(false);
+    setPredictions({});
+    setChangePasswordOpen(false);
+    setNewPassword("");
+    setConfirmPassword("");
+    setPassword("");
+    setPlayerName("");
+    setMessage(
+      "You have been signed out."
+    );
+
+    window.dispatchEvent(
+      new Event("pick7:auth-changed")
+    );
+
+    /*
+      Finish Supabase sign-out in the
+      background.
+    */
+    try {
+      await supabase().auth.signOut({
+        scope: "local",
+      });
+    } catch (error) {
+      console.error(
+        "Sign-out error:",
+        error
+      );
+    }
   }
-}
+
+  /* -------------------------------------------------
+     CHANGE PASSWORD
+     ------------------------------------------------- */
 
   async function changePassword() {
-    if (changingPassword)
-      return;
+    if (changingPassword) return;
 
     if (!newPassword) {
       setMessage(
@@ -589,161 +809,46 @@ async function signOut() {
       "Changing your passcode..."
     );
 
-    const {
-      error,
-    } = await supabase()
-      .auth.updateUser({
-        password: newPassword,
-      });
+    try {
+      const { error } =
+        await supabase().auth.updateUser({
+          password: newPassword,
+        });
 
-    if (error) {
-      setMessage(
-        "Could not change passcode: " +
-          error.message
-      );
-
-      setChangingPassword(false);
-      return;
-    }
-
-    setNewPassword("");
-    setConfirmPassword("");
-    setChangePasswordOpen(false);
-    setChangingPassword(false);
-
-    setMessage(
-      "✅ Your passcode has been changed successfully."
-    );
-  }
-
-  async function submit() {
-    if (
-      submitting ||
-      submitted ||
-      locked
-    ) {
-      return;
-    }
-
-    if (!user) {
-      setMessage(
-        "Please sign in before submitting your picks."
-      );
-      return;
-    }
-
-    if (
-      !round ||
-      games.length === 0
-    ) {
-      setMessage(
-        "There is no valid Pick 7 round available."
-      );
-      return;
-    }
-
-    const incomplete =
-      games.some((game) => {
-        const p =
-          predictions[
-            game.id
-          ];
-
-        return (
-          p?.home ===
-            undefined ||
-          p?.away ===
-            undefined ||
-          p?.home === "" ||
-          p?.away === ""
-        );
-      });
-
-    if (incomplete) {
-      setMessage(
-        `Please enter all ${games.length} scores.`
-      );
-      return;
-    }
-
-    setSubmitting(true);
-
-    setMessage(
-      `Submitting your ${games.length} picks...`
-    );
-
-    const rows =
-      games.map((game) => ({
-        round_id:
-          round.id,
-        fixture_id:
-          game.id,
-        player_id:
-          user.id,
-        predicted_home:
-          predictions[
-            game.id
-          ].home,
-        predicted_away:
-          predictions[
-            game.id
-          ].away,
-        submitted_at:
-          new Date().toISOString(),
-      }));
-
-    const { error } =
-      await supabase()
-        .from("predictions")
-        .insert(rows);
-
-    if (error) {
-      if (
-        error.code ===
-        "23505"
-      ) {
-        setSubmitted(true);
-
+      if (error) {
         setMessage(
-          `Your ${games.length} picks are already submitted and locked.`
-        );
-      } else if (
-        error.message
-          ?.toLowerCase()
-          .includes("locked")
-      ) {
-        setLocked(true);
-
-        setMessage(
-          "The first match has kicked off. Picks are now locked."
-        );
-      } else {
-        setMessage(
-          "Could not submit picks: " +
+          "Could not change passcode: " +
             error.message
         );
+        return;
       }
 
-      setSubmitting(false);
-      return;
+      setNewPassword("");
+      setConfirmPassword("");
+      setChangePasswordOpen(false);
+
+      setMessage(
+        "✅ Your passcode has been changed successfully."
+      );
+    } catch (error) {
+      setMessage(
+        "Could not change passcode: " +
+          (error?.message ||
+            "Unknown error")
+      );
+    } finally {
+      setChangingPassword(false);
     }
-
-    setSubmitted(true);
-
-    setMessage(
-      `Your ${games.length} picks have been submitted and locked.`
-    );
-
-    setSubmitting(false);
   }
 
-  function formatKickoff(
-    kickoff
-  ) {
-    const date =
-      new Date(kickoff);
+  /* -------------------------------------------------
+     FORMAT KICKOFF
+     ------------------------------------------------- */
 
-    return date.toLocaleString(
+  function formatKickoff(kickoff) {
+    return new Date(
+      kickoff
+    ).toLocaleString(
       "en-GB",
       {
         weekday: "short",
@@ -754,6 +859,10 @@ async function signOut() {
       }
     );
   }
+
+  /* -------------------------------------------------
+     DISPLAY
+     ------------------------------------------------- */
 
   return (
     <main className="wrap">
@@ -783,19 +892,16 @@ async function signOut() {
               ⚠️ FIXTURE UPDATE
             </strong>
 
-            {alerts.map(
-              (alert) => (
-                <div
-                  key={alert.id}
-                  style={{
-                    marginTop:
-                      "6px",
-                  }}
-                >
-                  {alert.message}
-                </div>
-              )
-            )}
+            {alerts.map((alert) => (
+              <div
+                key={alert.id}
+                style={{
+                  marginTop: "6px",
+                }}
+              >
+                {alert.message}
+              </div>
+            ))}
           </div>
         )}
 
@@ -836,17 +942,13 @@ async function signOut() {
                 </div>
               )}
 
-              {/* SIGN IN FIRST */}
-
               {!user && !locked && (
                 <div
                   className="card"
                   style={{
-                    marginBottom:
-                      "18px",
+                    marginBottom: "18px",
                   }}
                 >
-
                   <h3>
                     🔐 SIGN IN TO PLAY
                   </h3>
@@ -858,26 +960,16 @@ async function signOut() {
                   </p>
 
                   <form
-                    onSubmit={
-                      signIn
-                    }
+                    onSubmit={signIn}
                   >
-
                     <select
-                      value={
-                        playerName
-                      }
-                      onChange={(
-                        event
-                      ) =>
+                      value={playerName}
+                      onChange={(event) =>
                         setPlayerName(
-                          event
-                            .target
-                            .value
+                          event.target.value
                         )
                       }
                     >
-
                       <option value="">
                         Select your player name
                       </option>
@@ -885,35 +977,22 @@ async function signOut() {
                       {players.map(
                         (player) => (
                           <option
-                            key={
-                              player
-                            }
-                            value={
-                              player
-                            }
+                            key={player}
+                            value={player}
                           >
-                            {
-                              player
-                            }
+                            {player}
                           </option>
                         )
                       )}
-
                     </select>
 
                     <input
                       type="password"
                       placeholder="Password"
-                      value={
-                        password
-                      }
-                      onChange={(
-                        event
-                      ) =>
+                      value={password}
+                      onChange={(event) =>
                         setPassword(
-                          event
-                            .target
-                            .value
+                          event.target.value
                         )
                       }
                       autoComplete="current-password"
@@ -922,13 +1001,9 @@ async function signOut() {
                     <button type="submit">
                       SIGN IN
                     </button>
-
                   </form>
-
                 </div>
               )}
-
-              {/* GAMES */}
 
               <div
                 style={{
@@ -947,7 +1022,6 @@ async function signOut() {
                       : "none",
                 }}
               >
-
                 <p className="muted">
                   {user
                     ? "Predict the exact score for every match."
@@ -955,33 +1029,25 @@ async function signOut() {
                 </p>
 
                 {games.map(
-                  (
-                    game,
-                    index
-                  ) => {
-
+                  (game, index) => {
                     const prediction =
                       predictions[
                         game.id
                       ] || {};
 
-                    const homeRefIndex =
+                    const homeIndex =
                       index * 2;
 
-                    const awayRefIndex =
+                    const awayIndex =
                       index * 2 + 1;
 
                     return (
                       <div
                         className="fixture"
-                        key={
-                          game.id
-                        }
+                        key={game.id}
                       >
-
                         <div className="fixtureNumber">
-                          GAME{" "}
-                          {index + 1}
+                          GAME {index + 1}
                         </div>
 
                         <div className="kickoff">
@@ -992,24 +1058,16 @@ async function signOut() {
 
                         <div className="teams">
 
-                          {/* HOME TEAM */}
-
                           <div className="team">
-
                             <strong>
-                              {
-                                game.home_team
-                              }
+                              {game.home_team}
                             </strong>
 
                             <input
-                              ref={(
-                                element
-                              ) => {
+                              ref={(element) => {
                                 scoreRefs.current[
-                                  homeRefIndex
-                                ] =
-                                  element;
+                                  homeIndex
+                                ] = element;
                               }}
                               type="number"
                               min="0"
@@ -1026,38 +1084,27 @@ async function signOut() {
                                 submitted ||
                                 locked
                               }
-                              onChange={(
-                                event
-                              ) =>
+                              onChange={(event) =>
                                 setScore(
                                   game.id,
                                   "home",
-                                  event
-                                    .target
-                                    .value,
-                                  homeRefIndex
+                                  event.target.value,
+                                  homeIndex
                                 )
                               }
                             />
-
                           </div>
 
                           <div className="vs">
                             V
                           </div>
 
-                          {/* AWAY TEAM */}
-
                           <div className="team">
-
                             <input
-                              ref={(
-                                element
-                              ) => {
+                              ref={(element) => {
                                 scoreRefs.current[
-                                  awayRefIndex
-                                ] =
-                                  element;
+                                  awayIndex
+                                ] = element;
                               }}
                               type="number"
                               min="0"
@@ -1074,35 +1121,26 @@ async function signOut() {
                                 submitted ||
                                 locked
                               }
-                              onChange={(
-                                event
-                              ) =>
+                              onChange={(event) =>
                                 setScore(
                                   game.id,
                                   "away",
-                                  event
-                                    .target
-                                    .value,
-                                  awayRefIndex
+                                  event.target.value,
+                                  awayIndex
                                 )
                               }
                             />
 
                             <strong>
-                              {
-                                game.away_team
-                              }
+                              {game.away_team}
                             </strong>
-
                           </div>
 
                         </div>
-
                       </div>
                     );
                   }
                 )}
-
               </div>
 
               {message && (
@@ -1111,11 +1149,8 @@ async function signOut() {
                 </div>
               )}
 
-              {/* SIGNED IN ACCOUNT AREA */}
-
               {user && (
                 <>
-
                   <p className="muted">
                     👤 Signed in.
                   </p>
@@ -1126,9 +1161,7 @@ async function signOut() {
 
                         <button
                           type="button"
-                          onClick={
-                            submit
-                          }
+                          onClick={submit}
                           disabled={
                             submitting
                           }
@@ -1152,9 +1185,7 @@ async function signOut() {
 
                         <button
                           type="button"
-                          onClick={
-                            signOut
-                          }
+                          onClick={signOut}
                           className="sign-out"
                         >
                           ⇥ SIGN OUT
@@ -1165,7 +1196,6 @@ async function signOut() {
 
                   {submitted && (
                     <>
-
                       <div className="notice">
                         ✅ Your picks are locked in.
                       </div>
@@ -1186,16 +1216,13 @@ async function signOut() {
 
                         <button
                           type="button"
-                          onClick={
-                            signOut
-                          }
+                          onClick={signOut}
                           className="sign-out"
                         >
                           ⇥ SIGN OUT
                         </button>
 
                       </div>
-
                     </>
                   )}
 
@@ -1203,11 +1230,9 @@ async function signOut() {
                     <div
                       className="card"
                       style={{
-                        marginTop:
-                          "14px",
+                        marginTop: "14px",
                       }}
                     >
-
                       <h3>
                         Change Passcode
                       </h3>
@@ -1219,27 +1244,21 @@ async function signOut() {
 
                       <div
                         style={{
-                          display:
-                            "flex",
+                          display: "flex",
                           flexDirection:
                             "column",
                           gap: "10px",
                         }}
                       >
-
                         <input
                           type="password"
                           placeholder="New passcode"
                           value={
                             newPassword
                           }
-                          onChange={(
-                            event
-                          ) =>
+                          onChange={(event) =>
                             setNewPassword(
-                              event
-                                .target
-                                .value
+                              event.target.value
                             )
                           }
                           autoComplete="new-password"
@@ -1251,13 +1270,9 @@ async function signOut() {
                           value={
                             confirmPassword
                           }
-                          onChange={(
-                            event
-                          ) =>
+                          onChange={(event) =>
                             setConfirmPassword(
-                              event
-                                .target
-                                .value
+                              event.target.value
                             )
                           }
                           autoComplete="new-password"
@@ -1284,46 +1299,33 @@ async function signOut() {
                             setChangePasswordOpen(
                               false
                             );
-                            setNewPassword(
-                              ""
-                            );
-                            setConfirmPassword(
-                              ""
-                            );
+                            setNewPassword("");
+                            setConfirmPassword("");
                           }}
                         >
                           CANCEL
                         </button>
-
                       </div>
-
                     </div>
                   )}
-
-                  {/* ADMIN BUTTON */}
 
                   {isAdmin && (
                     <a
                       href="/admin"
                       className="btn"
                       style={{
-                        display:
-                          "block",
-                        textAlign:
-                          "center",
+                        display: "block",
+                        textAlign: "center",
                         textDecoration:
                           "none",
-                        marginTop:
-                          "12px",
+                        marginTop: "12px",
                       }}
                     >
                       ⚙️ ADMIN
                     </a>
                   )}
-
                 </>
               )}
-
             </>
           )}
 
