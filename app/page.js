@@ -536,20 +536,24 @@ export default function Home() {
     );
   }
 
-  async function signOut() {
-    await supabase().auth.signOut();
+async function signOut() {
+  // Clear the app immediately so sign-out feels instant.
+  setUser(null);
+  setIsAdmin(false);
+  setSubmitted(false);
+  setPredictions({});
+  setChangePasswordOpen(false);
+  setNewPassword("");
+  setConfirmPassword("");
+  setMessage("You have been signed out.");
 
-    setUser(null);
-    setIsAdmin(false);
-    setSubmitted(false);
-    setPredictions({});
-    setChangePasswordOpen(false);
-    setNewPassword("");
-    setConfirmPassword("");
-    setMessage(
-      "You have been signed out."
-    );
+  // Finish the Supabase sign-out in the background.
+  try {
+    await supabase().auth.signOut();
+  } catch (error) {
+    console.error("Sign-out error:", error);
   }
+}
 
   async function changePassword() {
     if (changingPassword)
