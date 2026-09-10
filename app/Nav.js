@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
@@ -76,31 +75,32 @@ export default function Nav() {
 
   return (
     <nav className="nav">
-      <Link href="/">
+
+      <a href="/">
         ⚽
         <small>Play</small>
-      </Link>
+      </a>
 
-      <Link href="/history">
+      <a href="/history">
         📜
         <small>History</small>
-      </Link>
+      </a>
 
-      <Link href="/competition">
+      <a href="/competition">
         🏆
         <small>5 Rounds</small>
-      </Link>
+      </a>
 
-      <Link href="/season">
+      <a href="/season">
         📊
         <small>Season</small>
-      </Link>
+      </a>
 
       {canViewPicks ? (
-        <Link href="/players-picks">
+        <a href="/players-picks">
           👥
           <small>Picks</small>
-        </Link>
+        </a>
       ) : (
         <span
           className="nav-disabled"
@@ -110,6 +110,7 @@ export default function Nav() {
           <small>Picks</small>
         </span>
       )}
+
     </nav>
   );
 }
