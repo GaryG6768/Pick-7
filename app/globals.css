@@ -822,3 +822,15 @@ h2{
     flex-basis: 190px;
   }
 }
+
+
+.nav-disabled {
+  opacity: 0.35;
+  filter: grayscale(1);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.nav-disabled small {
+  color: #71869a;
+}
