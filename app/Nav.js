@@ -22,9 +22,7 @@ export default function Nav() {
         .from("rounds")
         .select("id")
         .eq("status", "open")
-        .order("round_number", {
-          ascending: false,
-        })
+        .order("round_number", { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -33,12 +31,11 @@ export default function Nav() {
         return;
       }
 
-      const { data: predictions } =
-        await supabase()
-          .from("predictions")
-          .select("fixture_id")
-          .eq("round_id", round.id)
-          .eq("player_id", user.id);
+      const { data: predictions } = await supabase()
+        .from("predictions")
+        .select("fixture_id")
+        .eq("round_id", round.id)
+        .eq("player_id", user.id);
 
       const uniqueFixtures = new Set(
         (predictions || []).map(
@@ -46,9 +43,7 @@ export default function Nav() {
         )
       );
 
-      setCanViewPicks(
-        uniqueFixtures.size === 7
-      );
+      setCanViewPicks(uniqueFixtures.size === 7);
     } catch (error) {
       console.error(
         "Could not check Players' Picks access:",
@@ -62,28 +57,25 @@ export default function Nav() {
   useEffect(() => {
     checkPicksAccess();
 
-    const interval = setInterval(
-      checkPicksAccess,
-      3000
-    );
-
-    const {
-      data: authListener,
-    } = supabase().auth.onAuthStateChange(
-      () => {
+    const { data: authListener } =
+      supabase().auth.onAuthStateChange(() => {
         checkPicksAccess();
-      }
-    );
+      });
+
+    const handleFocus = () => {
+      checkPicksAccess();
+    };
+
+    window.addEventListener("focus", handleFocus);
 
     return () => {
-      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
       authListener?.subscription?.unsubscribe();
     };
   }, []);
 
   return (
     <nav className="nav">
-
       <Link href="/">
         ⚽
         <small>Play</small>
@@ -118,7 +110,6 @@ export default function Nav() {
           <small>Picks</small>
         </span>
       )}
-
     </nav>
   );
 }
