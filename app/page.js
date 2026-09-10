@@ -549,7 +549,7 @@ async function signOut() {
 
   // Finish the Supabase sign-out in the background.
   try {
-    await supabase().auth.signOut();
+    await supabase().auth.signOut({ scope: "local" });
   } catch (error) {
     console.error("Sign-out error:", error);
   }
