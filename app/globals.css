@@ -781,3 +781,44 @@ h2{
     min-height: 52px;
   }
 }
+
+/* =========================================
+   PICK 7 - FULL HEADER LOGO
+   ========================================= */
+
+.appHeader {
+  height: 88px;
+  padding: 8px 14px;
+}
+
+.appHeader .logo7 {
+  width: 210px;
+  height: 70px;
+  flex: 0 0 210px;
+  border-radius: 0;
+  background-image: url("/icon.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-color: transparent;
+  font-size: 0;
+  box-shadow: none;
+}
+
+.appHeader .brand,
+.appHeader .tag {
+  display: none;
+}
+
+@media (max-width: 430px) {
+  .appHeader {
+    height: 82px;
+    padding: 6px 10px;
+  }
+
+  .appHeader .logo7 {
+    width: 190px;
+    height: 68px;
+    flex-basis: 190px;
+  }
+}
