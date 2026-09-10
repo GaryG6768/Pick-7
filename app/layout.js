@@ -14,7 +14,9 @@ export default function Layout({ children }) {
         <div className="logo7">7</div>
 
         <div>
-          <div className="brand">PICK 7</div>
+          <div className="brand">
+            PICK 7
+          </div>
 
           <div className="tag">
             Seven matches. One weekly challenge.
@@ -44,14 +46,9 @@ export default function Layout({ children }) {
           <small>Season</small>
         </Link>
 
-        <a href="/admin">
-          ⚙️
-          <small>Admin</small>
-        </a>
-
       </nav>
 
-            {children}
+      {children}
 
       <script
         dangerouslySetInnerHTML={{
@@ -64,6 +61,7 @@ export default function Layout({ children }) {
           `,
         }}
       />
+
     </>
   );
 }
