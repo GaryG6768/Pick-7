@@ -22,7 +22,9 @@ export default function Nav() {
         .from("rounds")
         .select("id")
         .eq("status", "open")
-        .order("round_number", { ascending: false })
+        .order("round_number", {
+          ascending: false,
+        })
         .limit(1)
         .maybeSingle();
 
@@ -43,7 +45,9 @@ export default function Nav() {
         )
       );
 
-      setCanViewPicks(uniqueFixtures.size === 7);
+      setCanViewPicks(
+        uniqueFixtures.size === 7
+      );
     } catch (error) {
       console.error(
         "Could not check Players' Picks access:",
@@ -55,51 +59,44 @@ export default function Nav() {
   }
 
   useEffect(() => {
+    // Check once when navigation loads
     checkPicksAccess();
 
-    const { data: authListener } =
-      supabase().auth.onAuthStateChange(() => {
-        checkPicksAccess();
-      });
-
-    const handleFocus = () => {
-      checkPicksAccess();
-    };
-
-    const handlePicksSubmitted = () => {
-      setCanViewPicks(true);
-    };
-
+    // Update immediately after sign-in/sign-out
     const handleAuthChanged = () => {
       checkPicksAccess();
     };
 
-    window.addEventListener("focus", handleFocus);
+    // Activate Picks immediately after all 7
+    // picks have been successfully submitted
+    const handlePicksSubmitted = () => {
+      setCanViewPicks(true);
+    };
 
-    window.addEventListener(
-      "pick7:picks-submitted",
-      handlePicksSubmitted
-    );
+    const { data: authListener } =
+      supabase().auth.onAuthStateChange(
+        handleAuthChanged
+      );
 
     window.addEventListener(
       "pick7:auth-changed",
       handleAuthChanged
     );
 
+    window.addEventListener(
+      "pick7:picks-submitted",
+      handlePicksSubmitted
+    );
+
     return () => {
       window.removeEventListener(
-        "focus",
-        handleFocus
+        "pick7:auth-changed",
+        handleAuthChanged
       );
 
       window.removeEventListener(
         "pick7:picks-submitted",
         handlePicksSubmitted
-      );
-
-      window.removeEventListener(
-        "pick7:auth-changed",
-        handleAuthChanged
       );
 
       authListener?.subscription?.unsubscribe();
