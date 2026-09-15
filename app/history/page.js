@@ -19,12 +19,12 @@ export default function HistoryPage() {
 
       const db = supabase();
 
-      const { data: userData, error: userError } =
-        await db.auth.getUser();
+      const { data: sessionData, error: sessionError } =
+        await db.auth.getSession();
 
-      if (userError) throw userError;
+      if (sessionError) throw sessionError;
 
-      const currentUser = userData?.user;
+      const currentUser = sessionData?.session?.user;
 
       if (!currentUser) {
         setMessage("Please sign in to view your history.");
