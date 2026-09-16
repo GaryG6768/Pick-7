@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { supabase } from "../../lib/supabase";
 
 export default function CompetitionPage() {
@@ -82,10 +81,11 @@ export default function CompetitionPage() {
     let profiles = [];
 
     if (playerIds.length) {
-      const { data: profileData, error: profileError } = await db
-        .from("profiles")
-        .select("id,display_name")
-        .in("id", playerIds);
+      const { data: profileData, error: profileError } =
+        await db
+          .from("profiles")
+          .select("id,display_name")
+          .in("id", playerIds);
 
       if (profileError) {
         setMessage(profileError.message);
@@ -319,12 +319,12 @@ export default function CompetitionPage() {
           the number of players who entered.
         </p>
 
-        <Link
+        <a
           className="btn"
           href="/"
         >
           MAKE YOUR PICKS
-        </Link>
+        </a>
 
       </div>
 
