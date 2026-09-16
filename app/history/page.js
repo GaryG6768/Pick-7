@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 export default function HistoryPage() {
-  const [user, setUser] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -16,114 +15,139 @@ export default function HistoryPage() {
   async function loadHistory() {
     try {
       setLoading(true);
+      setMessage("");
 
       const db = supabase();
 
-      const { data: sessionData, error: sessionError } =
-        await db.auth.getSession();
+      // Get the currently signed-in player
+      const {
+        data: sessionData,
+        error: sessionError
+      } = await db.auth.getSession();
 
-      if (sessionError) throw sessionError;
+      if (sessionError) {
+        throw sessionError;
+      }
 
-      const currentUser = sessionData?.session?.user;
+      const user = sessionData?.session?.user;
 
-      if (!currentUser) {
+      if (!user) {
         setMessage("Please sign in to view your history.");
-        setLoading(false);
         return;
       }
 
-      setUser(currentUser);
-
-      const { data: rounds, error: roundsError } =
-        await db
+      // Load the basic history data
+      const [
+        { data: rounds, error: roundsError },
+        { data: scores, error: scoresError },
+        { data: predictions, error: predictionsError }
+      ] = await Promise.all([
+        db
           .from("rounds")
           .select("id, round_number, status")
-          .order("round_number", { ascending: false });
+          .order("round_number", {
+            ascending: false
+          }),
 
-      if (roundsError) throw roundsError;
-
-      const { data: scores, error: scoresError } =
-        await db
+        db
           .from("round_scores")
           .select(
             "round_id, match_points, competition_points, position"
           )
-          .eq("player_id", currentUser.id);
+          .eq("player_id", user.id),
 
-      if (scoresError) throw scoresError;
-
-      const { data: predictions, error: predictionsError } =
-        await db
+        db
           .from("predictions")
           .select(
             "round_id, fixture_id, predicted_home, predicted_away"
           )
-          .eq("player_id", currentUser.id);
+          .eq("player_id", user.id)
+      ]);
 
+      if (roundsError) throw roundsError;
+      if (scoresError) throw scoresError;
       if (predictionsError) throw predictionsError;
 
-      const roundIds = (rounds || []).map(r => r.id);
+      const roundList = rounds || [];
+      const scoreList = scores || [];
+      const predictionList = predictions || [];
+
+      // Get all round/fixture links
+      const roundIds = roundList.map(round => round.id);
 
       let links = [];
-      let fixtures = [];
 
       if (roundIds.length > 0) {
-        const { data: linkData, error: linkError } =
-          await db
-            .from("round_fixtures")
-            .select(
-              "round_id, fixture_number, fixture_id"
-            )
-            .in("round_id", roundIds)
-            .order("fixture_number", {
-              ascending: true
-            });
+        const {
+          data: linkData,
+          error: linkError
+        } = await db
+          .from("round_fixtures")
+          .select(
+            "round_id, fixture_number, fixture_id"
+          )
+          .in("round_id", roundIds)
+          .order("fixture_number", {
+            ascending: true
+          });
 
         if (linkError) throw linkError;
 
         links = linkData || [];
-
-        const fixtureIds = [
-          ...new Set(
-            links
-              .map(x => x.fixture_id)
-              .filter(Boolean)
-          )
-        ];
-
-        if (fixtureIds.length > 0) {
-          const {
-            data: fixtureData,
-            error: fixtureError
-          } = await db
-            .from("fixtures")
-            .select(
-              "id, home_team, away_team, kickoff, home_score, away_score, result_entered"
-            )
-            .in("id", fixtureIds);
-
-          if (fixtureError) throw fixtureError;
-
-          fixtures = fixtureData || [];
-        }
       }
 
+      // Get the actual fixtures
+      const fixtureIds = [
+        ...new Set(
+          links
+            .map(link => link.fixture_id)
+            .filter(Boolean)
+        )
+      ];
+
+      let fixtures = [];
+
+      if (fixtureIds.length > 0) {
+        const {
+          data: fixtureData,
+          error: fixtureError
+        } = await db
+          .from("fixtures")
+          .select(
+            "id, home_team, away_team, kickoff, home_score, away_score, result_entered"
+          )
+          .in("id", fixtureIds);
+
+        if (fixtureError) throw fixtureError;
+
+        fixtures = fixtureData || [];
+      }
+
+      // Make quick lookup maps
       const fixtureById = Object.fromEntries(
-        fixtures.map(f => [f.id, f])
+        fixtures.map(fixture => [
+          fixture.id,
+          fixture
+        ])
       );
 
       const scoreByRound = Object.fromEntries(
-        (scores || []).map(s => [s.round_id, s])
+        scoreList.map(score => [
+          score.round_id,
+          score
+        ])
       );
 
-      const predictionByRound = {};
+      const predictionsByRound = {};
 
-      (predictions || []).forEach(p => {
-        if (!predictionByRound[p.round_id]) {
-          predictionByRound[p.round_id] = {};
+      predictionList.forEach(prediction => {
+        if (!predictionsByRound[prediction.round_id]) {
+          predictionsByRound[prediction.round_id] = {};
         }
 
-        predictionByRound[p.round_id][p.fixture_id] = p;
+        predictionsByRound[prediction.round_id][
+          prediction.fixture_id
+        ] = prediction;
       });
 
       const linksByRound = {};
@@ -136,7 +160,8 @@ export default function HistoryPage() {
         linksByRound[link.round_id].push(link);
       });
 
-      const result = (rounds || [])
+      // Build the player's history
+      const result = roundList
         .map(round => {
           const games = (
             linksByRound[round.id] || []
@@ -144,7 +169,7 @@ export default function HistoryPage() {
             ...link,
             fixture: fixtureById[link.fixture_id],
             prediction:
-              predictionByRound[round.id]?.[
+              predictionsByRound[round.id]?.[
                 link.fixture_id
               ]
           }));
@@ -155,14 +180,15 @@ export default function HistoryPage() {
             games
           };
         })
-        .filter(
-          round =>
-            round.games.some(game => game.prediction) ||
-            round.score
-        );
+        .filter(round => {
+          const hasPredictions = round.games.some(
+            game => game.prediction
+          );
+
+          return hasPredictions || round.score;
+        });
 
       setHistory(result);
-
     } catch (error) {
       setMessage(
         "Unable to load history: " +
@@ -185,11 +211,15 @@ export default function HistoryPage() {
     );
   }
 
-  if (!user) {
+  if (message) {
     return (
       <main className="wrap">
         <div className="card">
-          <h2>My History</h2>
+          <div className="muted">
+            PLAYER HISTORY
+          </div>
+
+          <h2>My Pick 7 History</h2>
 
           <p className="notice">
             {message}
@@ -201,15 +231,12 @@ export default function HistoryPage() {
 
   return (
     <main className="wrap">
-
       <div className="card">
         <div className="muted">
           PLAYER HISTORY
         </div>
 
-        <h2>
-          My Pick 7 History
-        </h2>
+        <h2>My Pick 7 History</h2>
 
         <p className="muted">
           Your previous predictions, scores and
@@ -230,12 +257,9 @@ export default function HistoryPage() {
           className="card"
           key={round.id}
         >
-
           <div className="muted">
             ROUND {round.round_number} •{" "}
-            {String(
-              round.status || ""
-            ).toUpperCase()}
+            {String(round.status || "").toUpperCase()}
           </div>
 
           {round.score ? (
@@ -247,13 +271,11 @@ export default function HistoryPage() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns:
-                    "1fr 1fr",
+                  gridTemplateColumns: "1fr 1fr",
                   gap: "10px",
                   marginBottom: "18px"
                 }}
               >
-
                 <div
                   style={{
                     padding: "12px",
@@ -269,8 +291,7 @@ export default function HistoryPage() {
 
                   <strong>
                     {Number(
-                      round.score
-                        .competition_points || 0
+                      round.score.competition_points || 0
                     ).toFixed(2)}
                   </strong>
                 </div>
@@ -289,16 +310,13 @@ export default function HistoryPage() {
                   </div>
 
                   <strong>
-                    {round.score.position}
+                    {round.score.position ?? "-"}
                   </strong>
                 </div>
-
               </div>
             </>
           ) : (
-            <h3>
-              PICKS SUBMITTED
-            </h3>
+            <h3>PICKS SUBMITTED</h3>
           )}
 
           <div
@@ -308,11 +326,9 @@ export default function HistoryPage() {
               gap: "12px"
             }}
           >
-
             {round.games.map(game => {
               const fixture = game.fixture;
-              const prediction =
-                game.prediction;
+              const prediction = game.prediction;
 
               if (!fixture || !prediction) {
                 return null;
@@ -330,7 +346,6 @@ export default function HistoryPage() {
                       "1px solid rgba(255,255,255,0.08)"
                   }}
                 >
-
                   <div
                     className="muted"
                     style={{
@@ -349,7 +364,6 @@ export default function HistoryPage() {
                       gap: "8px"
                     }}
                   >
-
                     <div
                       style={{
                         fontWeight: "700",
@@ -379,7 +393,6 @@ export default function HistoryPage() {
                     >
                       {fixture.away_team}
                     </div>
-
                   </div>
 
                   {fixture.result_entered && (
@@ -403,16 +416,12 @@ export default function HistoryPage() {
                       </strong>
                     </div>
                   )}
-
                 </div>
               );
             })}
-
           </div>
-
         </div>
       ))}
-
     </main>
   );
 }
