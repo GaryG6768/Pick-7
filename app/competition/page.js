@@ -5,8 +5,8 @@ import { supabase } from "../../lib/supabase";
 
 export default function CompetitionPage() {
   const [competition, setCompetition] = useState(null);
-  const [rows, setRows] = useState([]);
   const [rounds, setRounds] = useState([]);
+  const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
@@ -15,152 +15,411 @@ export default function CompetitionPage() {
   }, []);
 
   async function loadCompetition() {
-    setLoading(true);
+    try {
+      setLoading(true);
+      setMessage("");
 
-    const db = supabase();
+      const db = supabase();
 
-    const { data: comp, error: compError } = await db
-      .from("competitions")
-      .select("id,name,rounds_total,current_round,status")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      // Get the current competition
+      const {
+        data: competitionData,
+        error: competitionError
+      } = await db
+        .from("competitions")
+        .select(
+          "id, name, rounds_total, current_round, status"
+        )
+        .order("created_at", {
+          ascending: false
+        })
+        .limit(1)
+        .maybeSingle();
 
-    if (compError) {
-      setMessage(compError.message);
-      setLoading(false);
-      return;
-    }
+      if (competitionError) {
+        throw competitionError;
+      }
 
-    setCompetition(comp);
-
-    if (!comp) {
-      setLoading(false);
-      return;
-    }
-
-    const { data: roundData, error: roundError } = await db
-      .from("rounds")
-      .select("id,round_number,status")
-      .eq("competition_id", comp.id)
-      .order("round_number", { ascending: true });
-
-    if (roundError) {
-      setMessage(roundError.message);
-      setLoading(false);
-      return;
-    }
-
-    setRounds(roundData || []);
-
-    const roundIds = (roundData || []).map(r => r.id);
-
-    if (!roundIds.length) {
-      setRows([]);
-      setLoading(false);
-      return;
-    }
-
-    const { data: scores, error: scoreError } = await db
-      .from("round_scores")
-      .select(
-        "round_id,player_id,match_points,competition_points,position,entered"
-      )
-      .in("round_id", roundIds);
-
-    if (scoreError) {
-      setMessage(scoreError.message);
-      setLoading(false);
-      return;
-    }
-
-    const playerIds = [
-      ...new Set((scores || []).map(s => s.player_id))
-    ];
-
-    let profiles = [];
-
-    if (playerIds.length) {
-      const { data: profileData, error: profileError } =
-        await db
-          .from("profiles")
-          .select("id,display_name")
-          .in("id", playerIds);
-
-      if (profileError) {
-        setMessage(profileError.message);
-        setLoading(false);
+      if (!competitionData) {
+        setCompetition(null);
+        setRounds([]);
+        setPlayers([]);
         return;
       }
 
-      profiles = profileData || [];
-    }
+      setCompetition(competitionData);
 
-    const names = Object.fromEntries(
-      profiles.map(p => [
-        p.id,
-        p.display_name || "Player"
-      ])
-    );
+      // Get the rounds belonging to this competition
+      const {
+        data: roundData,
+        error: roundError
+      } = await db
+        .from("rounds")
+        .select(
+          "id, round_number, status"
+        )
+        .eq(
+          "competition_id",
+          competitionData.id
+        )
+        .order("round_number", {
+          ascending: true
+        });
 
-    const totals = {};
-
-    for (const score of scores || []) {
-      if (!totals[score.player_id]) {
-        totals[score.player_id] = {
-          player_id: score.player_id,
-          name: names[score.player_id] || "Player",
-          total: 0,
-          rounds: {}
-        };
+      if (roundError) {
+        throw roundError;
       }
 
-      totals[score.player_id].total +=
-        Number(score.competition_points || 0);
+      const roundList = roundData || [];
 
-      totals[score.player_id].rounds[score.round_id] =
-        Number(score.competition_points || 0);
-    }
+      setRounds(roundList);
 
-    setRows(
-      Object.values(totals).sort(
+      if (roundList.length === 0) {
+        setPlayers([]);
+        return;
+      }
+
+      const roundIds = roundList.map(
+        round => round.id
+      );
+
+      // Get all competition scores
+      const {
+        data: scoreData,
+        error: scoreError
+      } = await db
+        .from("round_scores")
+        .select(
+          "round_id, player_id, match_points, competition_points, position, entered"
+        )
+        .in("round_id", roundIds);
+
+      if (scoreError) {
+        throw scoreError;
+      }
+
+      const scores = scoreData || [];
+
+      if (scores.length === 0) {
+        setPlayers([]);
+        return;
+      }
+
+      // Get player names
+      const playerIds = [
+        ...new Set(
+          scores.map(score => score.player_id)
+        )
+      ];
+
+      const {
+        data: profileData,
+        error: profileError
+      } = await db
+        .from("profiles")
+        .select(
+          "id, display_name"
+        )
+        .in("id", playerIds);
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      const names = Object.fromEntries(
+        (profileData || []).map(profile => [
+          profile.id,
+          profile.display_name || "Player"
+        ])
+      );
+
+      // Build leaderboard
+      const playerMap = {};
+
+      scores.forEach(score => {
+        if (!playerMap[score.player_id]) {
+          playerMap[score.player_id] = {
+            player_id: score.player_id,
+            name:
+              names[score.player_id] ||
+              "Player",
+            total: 0,
+            rounds: {}
+          };
+        }
+
+        const points = Number(
+          score.competition_points || 0
+        );
+
+        playerMap[
+          score.player_id
+        ].total += points;
+
+        playerMap[
+          score.player_id
+        ].rounds[score.round_id] = points;
+      });
+
+      const leaderboard = Object.values(
+        playerMap
+      ).sort(
         (a, b) =>
           b.total - a.total ||
           a.name.localeCompare(b.name)
-      )
-    );
+      );
 
-    setLoading(false);
+      setPlayers(leaderboard);
+    } catch (error) {
+      setMessage(
+        error?.message ||
+          "Unable to load the competition."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function roundStatus(status) {
+    if (!status) {
+      return "NOT STARTED";
+    }
+
+    return String(status).toUpperCase();
+  }
+
+  if (loading) {
+    return (
+      <main className="wrap">
+        <div className="card">
+          <div className="muted">
+            5 ROUND COMPETITION
+          </div>
+
+          <h2>5 Rounds</h2>
+
+          <p className="muted">
+            Loading competition...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (message) {
+    return (
+      <main className="wrap">
+        <div className="card">
+          <div className="muted">
+            5 ROUND COMPETITION
+          </div>
+
+          <h2>5 Rounds</h2>
+
+          <div className="notice">
+            {message}
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!competition) {
+    return (
+      <main className="wrap">
+        <div className="card">
+          <div className="muted">
+            5 ROUND COMPETITION
+          </div>
+
+          <h2>5 Rounds</h2>
+
+          <p className="muted">
+            No competition has been created yet.
+          </p>
+        </div>
+      </main>
+    );
   }
 
   return (
     <main className="wrap">
 
+      {/* Competition header */}
       <div className="card">
-
         <div className="muted">
           5 ROUND COMPETITION
         </div>
 
         <h2>
-          {competition?.name || "Pick 7 Competition"}
+          {competition.name ||
+            "Pick 7 Competition"}
         </h2>
 
         <p className="muted">
-          <strong>Competition points</strong>
+          Five rounds of Pick 7.
           <br /><br />
 
-          You get <strong>1 point more</strong> than the
-          player finishing below you.
+          Each round has its own finishing
+          position and competition points.
+        </p>
+      </div>
+
+      {/* Round status */}
+      <div className="card">
+        <h3>
+          Competition Rounds
+        </h3>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px"
+          }}
+        >
+          {rounds.map(round => (
+            <div
+              key={round.id}
+              style={{
+                display: "flex",
+                justifyContent:
+                  "space-between",
+                alignItems: "center",
+                padding: "14px",
+                borderRadius: "12px",
+                background:
+                  "rgba(255,255,255,0.05)",
+                border:
+                  "1px solid rgba(255,255,255,0.08)"
+              }}
+            >
+              <strong>
+                Round {round.round_number}
+              </strong>
+
+              <span className="muted">
+                {roundStatus(
+                  round.status
+                )}
+              </span>
+            </div>
+          ))}
+
+          {rounds.length === 0 && (
+            <p className="muted">
+              No rounds have been created yet.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Leaderboard */}
+      <div className="card">
+        <h3>
+          Competition Leaderboard
+        </h3>
+
+        {players.length === 0 ? (
+          <p className="muted">
+            No competition points have
+            been recorded yet.
+          </p>
+        ) : (
+          <div
+            style={{
+              overflowX: "auto"
+            }}
+          >
+            <table>
+              <thead>
+                <tr>
+                  <th>Pos</th>
+
+                  <th>Player</th>
+
+                  {rounds.map(round => (
+                    <th
+                      key={round.id}
+                      className="right"
+                    >
+                      R{round.round_number}
+                    </th>
+                  ))}
+
+                  <th className="right">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {players.map(
+                  (player, index) => (
+                    <tr
+                      key={
+                        player.player_id
+                      }
+                    >
+                      <td>
+                        {index + 1}
+                      </td>
+
+                      <td>
+                        <strong>
+                          {player.name}
+                        </strong>
+                      </td>
+
+                      {rounds.map(
+                        round => (
+                          <td
+                            key={
+                              round.id
+                            }
+                            className="right"
+                          >
+                            {player.rounds[
+                              round.id
+                            ] ?? "–"}
+                          </td>
+                        )
+                      )}
+
+                      <td className="right">
+                        <strong>
+                          {player.total}
+                        </strong>
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Scoring explanation */}
+      <div className="card">
+        <h3>
+          How Competition Points Work
+        </h3>
+
+        <p className="muted">
+          Your Pick 7 match points determine
+          your finishing position in each
+          round.
           <br /><br />
 
-          The winner receives competition points equal
-          to the <strong>number of players who entered
-          that round</strong>.
+          Competition points are then awarded
+          according to the number of players
+          who entered that round.
           <br /><br />
 
-          <strong>Example: 20 players</strong>
-          <br />
+          For example, with 20 players:
+          <br /><br />
+
           1st = 20 points
           <br />
           2nd = 19 points
@@ -169,163 +428,14 @@ export default function CompetitionPage() {
           <br />
           4th = 17 points
           <br />
-          and so on down to
+          ...
           <br />
           20th = 1 point.
           <br /><br />
 
-          If players tie, they share the points for the
-          positions they occupy.
+          Tied players share the points for
+          the positions they occupy.
         </p>
-
-      </div>
-
-      {loading && (
-        <div className="card">
-          Loading competition table…
-        </div>
-      )}
-
-      {!loading && message && (
-        <div className="card">
-          <div className="notice">
-            {message}
-          </div>
-        </div>
-      )}
-
-      {!loading && !message && rounds.length === 0 && (
-        <div className="card">
-
-          <h3>No rounds yet</h3>
-
-          <p className="muted">
-            The table will appear when rounds are scored.
-          </p>
-
-        </div>
-      )}
-
-      {!loading && !message && rounds.length > 0 && (
-        <div className="card">
-
-          <h3>
-            Competition Leaderboard
-          </h3>
-
-          <div style={{ overflowX: "auto" }}>
-
-            <table>
-
-              <thead>
-
-                <tr>
-
-                  <th>Pos</th>
-
-                  <th>Player</th>
-
-                  {rounds.map(r => (
-                    <th
-                      key={r.id}
-                      className="right"
-                    >
-                      R{r.round_number}
-                    </th>
-                  ))}
-
-                  <th className="right">
-                    Total
-                  </th>
-
-                </tr>
-
-              </thead>
-
-              <tbody>
-
-                {rows.map((row, index) => (
-
-                  <tr key={row.player_id}>
-
-                    <td>
-                      {index + 1}
-                    </td>
-
-                    <td>
-                      <strong>
-                        {row.name}
-                      </strong>
-                    </td>
-
-                    {rounds.map(r => (
-
-                      <td
-                        key={r.id}
-                        className="right"
-                      >
-                        {row.rounds[r.id] ?? "–"}
-                      </td>
-
-                    ))}
-
-                    <td className="right">
-
-                      <strong>
-                        {row.total}
-                      </strong>
-
-                    </td>
-
-                  </tr>
-
-                ))}
-
-              </tbody>
-
-            </table>
-
-          </div>
-
-          {rows.length === 0 && (
-            <p className="muted">
-              No scored players yet.
-            </p>
-          )}
-
-        </div>
-      )}
-
-      <div className="card">
-
-        <h3>
-          How it works
-        </h3>
-
-        <p className="muted">
-          Every player predicts the 7 selected matches.
-          <br /><br />
-
-          Exact score = <strong>10 points</strong>
-          <br />
-          Correct result = <strong>6 points</strong>
-          <br />
-          Wrong result = <strong>0 points</strong>
-          <br /><br />
-
-          Your total match points determine your finishing
-          position for that round.
-          Your competition points are then calculated from
-          the number of players who entered.
-        </p>
-
-        <a
-          className="btn"
-          href="/"
-        >
-          MAKE YOUR PICKS
-        </a>
-
       </div>
 
     </main>
