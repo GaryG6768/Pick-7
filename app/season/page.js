@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 export default function SeasonPage() {
-  const [rows, setRows] = useState([]);
   const [rounds, setRounds] = useState([]);
+  const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
@@ -14,161 +14,245 @@ export default function SeasonPage() {
   }, []);
 
   async function loadSeason() {
-    setLoading(true);
-    setMessage("");
+    try {
+      setLoading(true);
+      setMessage("");
 
-    const db = supabase();
+      const db = supabase();
 
-    const { data: roundData, error: roundError } = await db
-      .from("rounds")
-      .select("id,round_number,status")
-      .order("round_number", { ascending: true });
-
-    if (roundError) {
-      setMessage(roundError.message);
-      setLoading(false);
-      return;
-    }
-
-    setRounds(roundData || []);
-
-    const roundIds = (roundData || []).map(
-      (r) => r.id
-    );
-
-    if (!roundIds.length) {
-      setLoading(false);
-      return;
-    }
-
-    const {
-      data: scores,
-      error: scoreError,
-    } = await db
-      .from("round_scores")
-      .select(
-        "round_id,player_id,match_points,position,entered"
-      )
-      .in("round_id", roundIds);
-
-    if (scoreError) {
-      setMessage(scoreError.message);
-      setLoading(false);
-      return;
-    }
-
-    const playerIds = [
-      ...new Set(
-        (scores || []).map(
-          (s) => s.player_id
+      // Get all Pick 7 rounds
+      const {
+        data: roundData,
+        error: roundError
+      } = await db
+        .from("rounds")
+        .select(
+          "id, round_number, status"
         )
-      ),
-    ];
+        .order("round_number", {
+          ascending: true
+        });
 
-    let profiles = [];
+      if (roundError) {
+        throw roundError;
+      }
 
-    if (playerIds.length) {
+      const roundList = roundData || [];
+
+      setRounds(roundList);
+
+      // Get players who are in the Season League
       const {
         data: profileData,
-        error: profileError,
+        error: profileError
       } = await db
         .from("profiles")
         .select(
-          "id,display_name,season_league,season_league_start_round"
+          "id, display_name, season_league, season_league_start_round"
         )
-        .in("id", playerIds);
+        .eq("season_league", true)
+        .eq("active", true)
+        .order("display_name", {
+          ascending: true
+        });
 
       if (profileError) {
-        setMessage(profileError.message);
-        setLoading(false);
+        throw profileError;
+      }
+
+      const profileList = profileData || [];
+
+      if (profileList.length === 0) {
+        setPlayers([]);
         return;
       }
 
-      profiles = profileData || [];
-    }
-
-    const profileMap = Object.fromEntries(
-      profiles.map((p) => [
-        p.id,
-        p,
-      ])
-    );
-
-    const totals = {};
-
-    for (const score of scores || []) {
-      const profile =
-        profileMap[score.player_id];
-
-      if (!profile?.season_league) {
-        continue;
-      }
-
-      const round = (roundData || []).find(
-        (r) =>
-          r.id === score.round_id
+      const playerIds = profileList.map(
+        player => player.id
       );
 
-      if (!round) {
-        continue;
+      // Get their Pick 7 round scores
+      const {
+        data: scoreData,
+        error: scoreError
+      } = await db
+        .from("round_scores")
+        .select(
+          "round_id, player_id, match_points"
+        )
+        .in("player_id", playerIds);
+
+      if (scoreError) {
+        throw scoreError;
       }
 
-      const startRound =
-        profile.season_league_start_round;
+      const scores = scoreData || [];
 
-      if (
-        startRound !== null &&
-        startRound !== undefined &&
-        round.round_number < startRound
-      ) {
-        continue;
-      }
-
-      if (!totals[score.player_id]) {
-        totals[score.player_id] = {
-          player_id:
-            score.player_id,
-          name:
-            profile.display_name ||
-            "Player",
-          total: 0,
-          rounds: {},
-        };
-      }
-
-      totals[
-        score.player_id
-      ].total += Number(
-        score.match_points || 0
+      const roundMap = Object.fromEntries(
+        roundList.map(round => [
+          round.id,
+          round
+        ])
       );
 
-      totals[
-        score.player_id
-      ].rounds[
-        score.round_id
-      ] = Number(
-        score.match_points || 0
-      );
-    }
+      const leaderboard = profileList.map(
+        profile => {
+          const roundPoints = {};
 
-    const leaderboard =
-      Object.values(totals).sort(
+          scores
+            .filter(
+              score =>
+                score.player_id ===
+                profile.id
+            )
+            .forEach(score => {
+              const round =
+                roundMap[score.round_id];
+
+              if (!round) {
+                return;
+              }
+
+              // Only count points from the
+              // round the player joined the
+              // Season League.
+              const startRound =
+                profile.season_league_start_round;
+
+              if (
+                startRound !== null &&
+                startRound !== undefined &&
+                round.round_number <
+                  startRound
+              ) {
+                return;
+              }
+
+              roundPoints[
+                score.round_id
+              ] = Number(
+                score.match_points || 0
+              );
+            });
+
+          // Add every eligible round.
+          const total =
+            Object.values(
+              roundPoints
+            ).reduce(
+              (sum, points) =>
+                sum + points,
+              0
+            );
+
+          return {
+            player_id: profile.id,
+            name:
+              profile.display_name ||
+              "Player",
+            rounds: roundPoints,
+            total
+          };
+        }
+      );
+
+      // Highest Season total first.
+      leaderboard.sort(
         (a, b) =>
           b.total - a.total ||
-          a.name.localeCompare(
-            b.name
-          )
+          a.name.localeCompare(b.name)
       );
 
-    setRows(leaderboard);
-    setLoading(false);
+      // Assign positions.
+      let previousTotal = null;
+      let previousPosition = 0;
+
+      const positioned =
+        leaderboard.map(
+          (player, index) => {
+            let position;
+
+            if (
+              previousTotal !== null &&
+              player.total ===
+                previousTotal
+            ) {
+              position =
+                previousPosition;
+            } else {
+              position =
+                index + 1;
+            }
+
+            previousTotal =
+              player.total;
+
+            previousPosition =
+              position;
+
+            return {
+              ...player,
+              position
+            };
+          }
+        );
+
+      setPlayers(positioned);
+    } catch (error) {
+      setMessage(
+        error?.message ||
+          "Unable to load the Season League."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="wrap">
+        <div className="card">
+          <div className="muted">
+            SEASON LEAGUE
+          </div>
+
+          <h2>
+            Pick 7 Season
+          </h2>
+
+          <p className="muted">
+            Loading Season League...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (message) {
+    return (
+      <main className="wrap">
+        <div className="card">
+          <div className="muted">
+            SEASON LEAGUE
+          </div>
+
+          <h2>
+            Pick 7 Season
+          </h2>
+
+          <div className="notice">
+            {message}
+          </div>
+        </div>
+      </main>
+    );
   }
 
   return (
     <main className="wrap">
 
+      {/* Header */}
       <div className="card">
-
         <div className="muted">
           SEASON LEAGUE
         </div>
@@ -178,159 +262,151 @@ export default function SeasonPage() {
         </h2>
 
         <p className="muted">
-          Only players who have joined
-          the Season League are shown.
-          Points count from the round
-          they joined.
+          Your Pick 7 points are added
+          together throughout the season.
         </p>
 
         <p className="muted">
-          Exact score = 10 points •
-          Correct result = 6 points •
-          Wrong = 0
+          Exact score ={" "}
+          <strong>10 points</strong>
+          <br />
+
+          Correct result ={" "}
+          <strong>6 points</strong>
+          <br />
+
+          Wrong result ={" "}
+          <strong>0 points</strong>
         </p>
 
+        <p className="muted">
+          Your Season total starts from
+          the round in which you joined
+          the Season League.
+        </p>
       </div>
 
-      {loading && (
-        <div className="card">
-          Loading season table…
-        </div>
-      )}
+      {/* Leaderboard */}
+      <div className="card">
+        <h3>
+          Season Leaderboard
+        </h3>
 
-      {!loading && message && (
-        <div className="card">
-          <div className="notice">
-            {message}
-          </div>
-        </div>
-      )}
+        {players.length === 0 ? (
+          <p className="muted">
+            No Season League players
+            have been added yet.
+          </p>
+        ) : (
+          <div
+            style={{
+              overflowX: "auto"
+            }}
+          >
+            <table>
+              <thead>
+                <tr>
+                  <th>
+                    Pos
+                  </th>
 
-      {!loading &&
-        !message &&
-        rows.length === 0 && (
-          <div className="card">
+                  <th>
+                    Player
+                  </th>
 
-            <h3>
-              No season scores yet
-            </h3>
-
-            <p className="muted">
-              The Season League table
-              will appear after a round
-              has been scored.
-            </p>
-
-          </div>
-        )}
-
-      {!loading &&
-        !message &&
-        rows.length > 0 && (
-          <div className="card">
-
-            <h3>
-              Season Leaderboard
-            </h3>
-
-            <div
-              style={{
-                overflowX: "auto",
-              }}
-            >
-
-              <table>
-
-                <thead>
-
-                  <tr>
-
-                    <th>
-                      Pos
+                  {rounds.map(round => (
+                    <th
+                      key={round.id}
+                      className="right"
+                    >
+                      R{round.round_number}
                     </th>
+                  ))}
 
-                    <th>
-                      Player
-                    </th>
+                  <th className="right">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {players.map(player => (
+                  <tr
+                    key={
+                      player.player_id
+                    }
+                  >
+                    <td>
+                      <strong>
+                        {player.position}
+                      </strong>
+                    </td>
+
+                    <td>
+                      <strong>
+                        {player.name}
+                      </strong>
+                    </td>
 
                     {rounds.map(
-                      (r) => (
-                        <th
-                          key={r.id}
+                      round => (
+                        <td
+                          key={round.id}
                           className="right"
                         >
-                          R
                           {
-                            r.round_number
+                            player.rounds[
+                              round.id
+                            ] ?? "–"
                           }
-                        </th>
+                        </td>
                       )
                     )}
 
-                    <th className="right">
-                      Total
-                    </th>
-
+                    <td className="right">
+                      <strong>
+                        {player.total}
+                      </strong>
+                    </td>
                   </tr>
-
-                </thead>
-
-                <tbody>
-
-                  {rows.map(
-                    (row, index) => (
-                      <tr
-                        key={
-                          row.player_id
-                        }
-                      >
-
-                        <td>
-                          {index + 1}
-                        </td>
-
-                        <td>
-                          <strong>
-                            {row.name}
-                          </strong>
-                        </td>
-
-                        {rounds.map(
-                          (r) => (
-                            <td
-                              key={r.id}
-                              className="right"
-                            >
-                              {
-                                row.rounds[
-                                  r.id
-                                ] ??
-                                "–"
-                              }
-                            </td>
-                          )
-                        )}
-
-                        <td className="right">
-
-                          <strong>
-                            {row.total}
-                          </strong>
-
-                        </td>
-
-                      </tr>
-                    )
-                  )}
-
-                </tbody>
-
-              </table>
-
-            </div>
-
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
+      </div>
+
+      {/* How it works */}
+      <div className="card">
+        <h3>
+          How the Season Works
+        </h3>
+
+        <p className="muted">
+          Every Pick 7 round contributes
+          your match points to your Season
+          League total.
+          <br /><br />
+
+          Exact score ={" "}
+          <strong>10 points</strong>
+          <br />
+
+          Correct result ={" "}
+          <strong>6 points</strong>
+          <br />
+
+          Wrong result ={" "}
+          <strong>0 points</strong>
+          <br /><br />
+
+          If you join the Season League
+          after the season has started,
+          only rounds from your joining
+          round onwards count towards your
+          Season total.
+        </p>
+      </div>
 
     </main>
   );
