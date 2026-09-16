@@ -48,10 +48,7 @@ export default function AdminPage() {
   async function checkAdmin(currentUser) {
     const db = supabase();
 
-    const {
-      data: profile,
-      error
-    } = await db
+    const { data: profile, error } = await db
       .from("profiles")
       .select("is_admin")
       .eq("id", currentUser.id)
@@ -59,16 +56,19 @@ export default function AdminPage() {
 
     if (error || !profile?.is_admin) {
       await db.auth.signOut();
+
       setUser(null);
       setMessage(
         "This account is not authorised as a Pick 7 administrator."
       );
+
       return;
     }
 
     setUser(currentUser);
     setMessage("");
-    loadPlayers();
+
+    await loadPlayers();
   }
 
   async function signIn() {
@@ -83,10 +83,7 @@ export default function AdminPage() {
 
       const db = supabase();
 
-      const {
-        data,
-        error
-      } = await db.auth.signInWithPassword({
+      const { data, error } = await db.auth.signInWithPassword({
         email: email.trim(),
         password
       });
@@ -98,9 +95,7 @@ export default function AdminPage() {
 
       await checkAdmin(data.user);
     } catch (error) {
-      setMessage(
-        error?.message || "Unable to sign in."
-      );
+      setMessage(error?.message || "Unable to sign in.");
     } finally {
       setLoading(false);
     }
@@ -118,10 +113,7 @@ export default function AdminPage() {
     try {
       const db = supabase();
 
-      const {
-        data,
-        error
-      } = await db
+      const { data, error } = await db
         .from("profiles")
         .select(
           "id, display_name, active, season_league, season_league_start_round, is_admin"
@@ -131,17 +123,13 @@ export default function AdminPage() {
         });
 
       if (error) {
-        setMessage(
-          "Could not load players: " + error.message
-        );
+        setMessage("Could not load players: " + error.message);
         return;
       }
 
       setPlayers(data || []);
     } catch (error) {
-      setMessage(
-        error?.message || "Unable to load players."
-      );
+      setMessage(error?.message || "Unable to load players.");
     }
   }
 
@@ -155,9 +143,7 @@ export default function AdminPage() {
     }
 
     if (playerPassword.length < 6) {
-      setMessage(
-        "Player password must be at least 6 characters."
-      );
+      setMessage("Player password must be at least 6 characters.");
       return;
     }
 
@@ -167,10 +153,7 @@ export default function AdminPage() {
 
       const db = supabase();
 
-      const {
-        data,
-        error
-      } = await db.functions.invoke(
+      const { data, error } = await db.functions.invoke(
         "admin-create-player",
         {
           body: {
@@ -195,15 +178,11 @@ export default function AdminPage() {
       setNewPlayerPassword("");
       setNewPlayerSeason(true);
 
-      setMessage(
-        `${name} has been added successfully.`
-      );
+      setMessage(`${name} has been added successfully.`);
 
       await loadPlayers();
     } catch (error) {
-      setMessage(
-        error?.message || "Could not add player."
-      );
+      setMessage(error?.message || "Could not add player.");
     } finally {
       setLoading(false);
     }
@@ -223,10 +202,7 @@ export default function AdminPage() {
 
       const db = supabase();
 
-      const {
-        data,
-        error
-      } = await db.functions.invoke(
+      const { data, error } = await db.functions.invoke(
         "admin-update-player",
         {
           body: {
@@ -276,10 +252,7 @@ export default function AdminPage() {
 
       const db = supabase();
 
-      const {
-        data,
-        error
-      } = await db.functions.invoke(
+      const { data, error } = await db.functions.invoke(
         "admin-update-player",
         {
           body: {
@@ -335,9 +308,7 @@ export default function AdminPage() {
             type="email"
             placeholder="Admin email address"
             value={email}
-            onChange={(e) =>
-              setEmail(e.target.value)
-            }
+            onChange={(e) => setEmail(e.target.value)}
             style={{
               width: "100%",
               padding: 12,
@@ -353,9 +324,7 @@ export default function AdminPage() {
             type="password"
             placeholder="Admin password"
             value={password}
-            onChange={(e) =>
-              setPassword(e.target.value)
-            }
+            onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 signIn();
@@ -395,11 +364,11 @@ export default function AdminPage() {
   }
 
   const activePlayers = players.filter(
-    player => player.active !== false
+    (player) => player.active !== false
   );
 
   const seasonPlayers = players.filter(
-    player =>
+    (player) =>
       player.active !== false &&
       player.season_league === true
   );
@@ -417,8 +386,7 @@ export default function AdminPage() {
         </h2>
 
         <p className="muted">
-          Manage Pick 7 players and Season League
-          membership.
+          Manage Pick 7 players and Season League membership.
         </p>
 
         <button
@@ -440,8 +408,7 @@ export default function AdminPage() {
         </h3>
 
         <p className="muted">
-          Create a player account and give them
-          their Pick 7 password.
+          Create a player account and give them their Pick 7 password.
         </p>
 
         <label>
@@ -452,9 +419,7 @@ export default function AdminPage() {
           type="text"
           placeholder="Enter player name"
           value={newPlayerName}
-          onChange={(e) =>
-            setNewPlayerName(e.target.value)
-          }
+          onChange={(e) => setNewPlayerName(e.target.value)}
           autoComplete="off"
           style={{
             width: "100%",
@@ -476,9 +441,7 @@ export default function AdminPage() {
           type="password"
           placeholder="Minimum 6 characters"
           value={newPlayerPassword}
-          onChange={(e) =>
-            setNewPlayerPassword(e.target.value)
-          }
+          onChange={(e) => setNewPlayerPassword(e.target.value)}
           autoComplete="new-password"
           style={{
             width: "100%",
@@ -504,9 +467,7 @@ export default function AdminPage() {
             type="checkbox"
             checked={newPlayerSeason}
             onChange={(e) =>
-              setNewPlayerSeason(
-                e.target.checked
-              )
+              setNewPlayerSeason(e.target.checked)
             }
             style={{
               width: 20,
@@ -515,7 +476,9 @@ export default function AdminPage() {
           />
 
           <span>
-            <strong>Include in Season League</strong>
+            <strong>
+              Include in Season League
+            </strong>
           </span>
         </label>
 
@@ -603,7 +566,7 @@ export default function AdminPage() {
           </p>
         ) : (
           <div>
-            {players.map(player => (
+            {players.map((player) => (
               <div
                 key={player.id}
                 style={{
@@ -616,8 +579,7 @@ export default function AdminPage() {
                 <div
                   style={{
                     display: "flex",
-                    justifyContent:
-                      "space-between",
+                    justifyContent: "space-between",
                     alignItems: "center",
                     gap: 10
                   }}
@@ -663,9 +625,7 @@ export default function AdminPage() {
                     <button
                       className="btn"
                       onClick={() =>
-                        changeActiveStatus(
-                          player
-                        )
+                        changeActiveStatus(player)
                       }
                       disabled={loading}
                       style={{
@@ -685,9 +645,7 @@ export default function AdminPage() {
                       <button
                         className="btn"
                         onClick={() =>
-                          changeSeasonLeague(
-                            player
-                          )
+                          changeSeasonLeague(player)
                         }
                         disabled={loading}
                         style={{
@@ -710,11 +668,47 @@ export default function AdminPage() {
                         marginTop: 8
                       }}
                     >
-                      Season starts from
-                      Round{" "}
-                      {
-                        player.season_league_start_round
-                      }
+                      Season starts from Round{" "}
+                      {player.season_league_start_round}
                     </div>
                   )}
-              </
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <h3>
+          Admin Information
+        </h3>
+
+        <p className="muted">
+          The Admin area is only for managing players.
+        </p>
+
+        <p className="muted">
+          Weekly Pick 7 rounds and the random selection
+          of the seven fixtures are handled automatically
+          by the system.
+        </p>
+
+        <p className="muted">
+          Removing a player makes them inactive rather
+          than permanently deleting them. Their previous
+          Pick 7 history is preserved.
+        </p>
+
+        <p className="muted">
+          An inactive player can be reactivated later.
+        </p>
+
+        <p className="muted">
+          Player passwords are not displayed here after
+          they have been created.
+        </p>
+      </div>
+
+    </main>
+  );
+}
