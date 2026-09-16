@@ -7,26 +7,36 @@ export const metadata = {
   manifest: "/manifest.json",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function Layout({ children }) {
   return (
-    <>
-      <header className="appHeader">
-        <div className="logo7">7</div>
-
-        <div>
-          <div className="brand">
-            PICK 7
+    <html lang="en">
+      <body>
+        <header className="appHeader">
+          <div className="logo7" aria-hidden="true">
+            7
           </div>
 
-          <div className="tag">
-            Seven matches. One weekly challenge.
+          <div>
+            <div className="brand">
+              PICK 7
+            </div>
+
+            <div className="tag">
+              Seven matches. One weekly challenge.
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <Nav />
+        <Nav />
 
-      {children}
-    </>
+        <main>{children}</main>
+      </body>
+    </html>
   );
 }
