@@ -59,16 +59,12 @@ export default function Nav() {
   }
 
   useEffect(() => {
-    // Check once when navigation loads
     checkPicksAccess();
 
-    // Update immediately after sign-in/sign-out
     const handleAuthChanged = () => {
       checkPicksAccess();
     };
 
-    // Activate Picks immediately after all 7
-    // picks have been successfully submitted
     const handlePicksSubmitted = () => {
       setCanViewPicks(true);
     };
@@ -111,10 +107,10 @@ export default function Nav() {
         <small>Play</small>
       </Link>
 
-      <Link href="/history">
+      <a href="/history">
         📜
         <small>History</small>
-      </Link>
+      </a>
 
       <Link href="/competition">
         🏆
