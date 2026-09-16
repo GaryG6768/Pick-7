@@ -209,6 +209,59 @@ export default function AdminPage() {
     }
   }
 
+  async function changeActiveStatus(player) {
+    const newActiveStatus = !player.active;
+
+    try {
+      setLoading(true);
+
+      setMessage(
+        newActiveStatus
+          ? `Reactivating ${player.display_name}...`
+          : `Removing ${player.display_name} from active players...`
+      );
+
+      const db = supabase();
+
+      const {
+        data,
+        error
+      } = await db.functions.invoke(
+        "admin-update-player",
+        {
+          body: {
+            player_id: player.id,
+            active: newActiveStatus
+          }
+        }
+      );
+
+      if (error) {
+        throw new Error(
+          error.message || "Could not update player."
+        );
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      setMessage(
+        newActiveStatus
+          ? `${player.display_name} has been reactivated.`
+          : `${player.display_name} has been removed from active players.`
+      );
+
+      await loadPlayers();
+    } catch (error) {
+      setMessage(
+        error?.message || "Could not update player."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function changeSeasonLeague(player) {
     try {
       setLoading(true);
@@ -308,6 +361,7 @@ export default function AdminPage() {
                 signIn();
               }
             }}
+            autoComplete="current-password"
             style={{
               width: "100%",
               padding: 12,
@@ -353,7 +407,6 @@ export default function AdminPage() {
   return (
     <main className="wrap">
 
-      {/* Admin header */}
       <div className="card">
         <div className="muted">
           PICK 7 ADMIN
@@ -377,7 +430,6 @@ export default function AdminPage() {
         </button>
       </div>
 
-      {/* Add player */}
       <div className="card">
         <div className="muted">
           PLAYER MANAGEMENT
@@ -485,7 +537,6 @@ export default function AdminPage() {
         )}
       </div>
 
-      {/* Summary */}
       <div className="card">
         <h3>
           Player Summary
@@ -541,7 +592,6 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Players */}
       <div className="card">
         <h3>
           Players
@@ -609,22 +659,47 @@ export default function AdminPage() {
                 </div>
 
                 {!player.is_admin && (
-                  <button
-                    className="btn"
-                    onClick={() =>
-                      changeSeasonLeague(
-                        player
-                      )
-                    }
-                    disabled={loading}
-                    style={{
-                      marginTop: 12
-                    }}
-                  >
-                    {player.season_league
-                      ? "REMOVE FROM SEASON LEAGUE"
-                      : "ADD TO SEASON LEAGUE"}
-                  </button>
+                  <>
+                    <button
+                      className="btn"
+                      onClick={() =>
+                        changeActiveStatus(
+                          player
+                        )
+                      }
+                      disabled={loading}
+                      style={{
+                        marginTop: 12,
+                        background:
+                          player.active === false
+                            ? undefined
+                            : "#b42318"
+                      }}
+                    >
+                      {player.active === false
+                        ? "REACTIVATE PLAYER"
+                        : "REMOVE PLAYER"}
+                    </button>
+
+                    {player.active !== false && (
+                      <button
+                        className="btn"
+                        onClick={() =>
+                          changeSeasonLeague(
+                            player
+                          )
+                        }
+                        disabled={loading}
+                        style={{
+                          marginTop: 10
+                        }}
+                      >
+                        {player.season_league
+                          ? "REMOVE FROM SEASON LEAGUE"
+                          : "ADD TO SEASON LEAGUE"}
+                      </button>
+                    )}
+                  </>
                 )}
 
                 {player.season_league &&
@@ -642,35 +717,4 @@ export default function AdminPage() {
                       }
                     </div>
                   )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Important information */}
-      <div className="card">
-        <h3>
-          Admin Information
-        </h3>
-
-        <p className="muted">
-          The Admin area is only for managing
-          players.
-          <br />
-          <br />
-
-          Weekly Pick 7 rounds and the random
-          selection of the seven fixtures are
-          handled automatically by the system.
-          <br />
-          <br />
-
-          Player passwords are not displayed
-          here after they have been created.
-        </p>
-      </div>
-
-    </main>
-  );
-}
+              </
