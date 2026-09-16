@@ -46,16 +46,16 @@ export default function Home() {
       const db = supabase();
 
       /*
-        Get the current user and open round at the
+        Get the current session and open round at the
         same time. Neither depends on the other.
       */
       const [
         {
-          data: { user: currentUser },
+          data: { session },
         },
         { data: roundData, error: roundError },
       ] = await Promise.all([
-        db.auth.getUser(),
+        db.auth.getSession(),
 
         db
           .from("rounds")
@@ -69,6 +69,8 @@ export default function Home() {
       ]);
 
       if (roundError) throw roundError;
+
+      const currentUser = session?.user;
 
       if (currentUser) {
         setUser(currentUser);
