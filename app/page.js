@@ -878,7 +878,7 @@ export default function Home() {
               </section>
             )}
 
-            {!user && !locked && (
+            {!user && (
               <section className="card">
                 <h3>
                   🔐 SIGN IN TO PLAY
