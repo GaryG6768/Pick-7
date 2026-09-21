@@ -199,6 +199,44 @@ export default function HistoryPage() {
     }
   }
 
+  /*
+    Calculate the points for an individual game.
+
+    Exact score = 10 points
+    Correct result = 6 points
+    Wrong result = 0 points
+  */
+  function getGamePoints(prediction, fixture) {
+    if (
+      prediction.predicted_home === fixture.home_score &&
+      prediction.predicted_away === fixture.away_score
+    ) {
+      return 10;
+    }
+
+    const predictedResult =
+      prediction.predicted_home > prediction.predicted_away
+        ? "H"
+        : prediction.predicted_home <
+            prediction.predicted_away
+          ? "A"
+          : "D";
+
+    const actualResult =
+      fixture.home_score > fixture.away_score
+        ? "H"
+        : fixture.home_score <
+            fixture.away_score
+          ? "A"
+          : "D";
+
+    if (predictedResult === actualResult) {
+      return 6;
+    }
+
+    return 0;
+  }
+
   if (loading) {
     return (
       <main className="wrap">
@@ -334,6 +372,14 @@ export default function HistoryPage() {
                 return null;
               }
 
+              const gamePoints =
+                fixture.result_entered
+                  ? getGamePoints(
+                      prediction,
+                      fixture
+                    )
+                  : null;
+
               return (
                 <div
                   key={game.fixture_id}
@@ -405,15 +451,27 @@ export default function HistoryPage() {
                         textAlign: "center"
                       }}
                     >
-                      <span className="muted">
-                        Actual result{" "}
-                      </span>
+                      <div>
+                        <span className="muted">
+                          Actual result{" "}
+                        </span>
 
-                      <strong>
-                        {fixture.home_score}
-                        {" - "}
-                        {fixture.away_score}
-                      </strong>
+                        <strong>
+                          {fixture.home_score}
+                          {" - "}
+                          {fixture.away_score}
+                        </strong>
+                      </div>
+
+                      <div
+                        style={{
+                          marginTop: "8px",
+                          fontWeight: "900",
+                          fontSize: "15px"
+                        }}
+                      >
+                        {gamePoints} POINTS
+                      </div>
                     </div>
                   )}
                 </div>
