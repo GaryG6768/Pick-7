@@ -125,7 +125,7 @@ export default function Home() {
       } = await db
         .from("fixtures")
         .select(
-          "id, home_team, away_team, kickoff"
+          "id, home_team, away_team, kickoff, home_score, away_score, result_entered"
         )
         .in("id", fixtureIds);
 
@@ -191,6 +191,181 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  }
+
+  /*
+   --------------------------------------------------
+   REFRESH LIVE RESULTS
+   --------------------------------------------------
+  */
+
+  useEffect(() => {
+    if (!round || games.length === 0) {
+      return;
+    }
+
+    async function refreshResults() {
+      try {
+        const db = supabase();
+
+        const fixtureIds = games
+          .map((game) => game.id)
+          .filter(Boolean);
+
+        if (fixtureIds.length === 0) {
+          return;
+        }
+
+        const {
+          data,
+          error,
+        } = await db
+          .from("fixtures")
+          .select(
+            "id, home_team, away_team, kickoff, home_score, away_score, result_entered"
+          )
+          .in("id", fixtureIds);
+
+        if (error) {
+          console.error(
+            "Live result refresh error:",
+            error
+          );
+          return;
+        }
+
+        if (!data) {
+          return;
+        }
+
+        const updatedMap = Object.fromEntries(
+          data.map((fixture) => [
+            fixture.id,
+            fixture,
+          ])
+        );
+
+        setGames((currentGames) =>
+          currentGames.map((game) => ({
+            ...game,
+            ...(updatedMap[game.id] || {}),
+          }))
+        );
+      } catch (error) {
+        console.error(
+          "Live result refresh error:",
+          error
+        );
+      }
+    }
+
+    // Check immediately
+    refreshResults();
+
+    // Then check every 30 seconds
+    const interval = setInterval(
+      refreshResults,
+      30000
+    );
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [round?.id, games.length]);
+
+  /*
+   --------------------------------------------------
+   CALCULATE GAME POINTS
+   --------------------------------------------------
+  */
+
+  function getGamePoints(
+    prediction,
+    fixture
+  ) {
+    if (
+      !fixture?.result_entered ||
+      fixture.home_score === null ||
+      fixture.away_score === null ||
+      fixture.home_score === undefined ||
+      fixture.away_score === undefined
+    ) {
+      return null;
+    }
+
+    if (
+      Number(prediction.home) ===
+        Number(fixture.home_score) &&
+      Number(prediction.away) ===
+        Number(fixture.away_score)
+    ) {
+      return 10;
+    }
+
+    const predictedResult =
+      Number(prediction.home) >
+      Number(prediction.away)
+        ? "H"
+        : Number(prediction.home) <
+            Number(prediction.away)
+          ? "A"
+          : "D";
+
+    const actualResult =
+      Number(fixture.home_score) >
+      Number(fixture.away_score)
+        ? "H"
+        : Number(fixture.home_score) <
+            Number(fixture.away_score)
+          ? "A"
+          : "D";
+
+    if (
+      predictedResult === actualResult
+    ) {
+      return 6;
+    }
+
+    return 0;
+  }
+
+  /*
+   --------------------------------------------------
+   CALCULATE RUNNING TOTAL
+   --------------------------------------------------
+  */
+
+  function getRunningTotal() {
+    if (!user || !submitted) {
+      return null;
+    }
+
+    let total = 0;
+    let completedGames = 0;
+
+    games.forEach((game) => {
+      const prediction =
+        predictions[game.id];
+
+      if (!prediction) {
+        return;
+      }
+
+      const points = getGamePoints(
+        prediction,
+        game
+      );
+
+      if (points !== null) {
+        total += points;
+        completedGames++;
+      }
+    });
+
+    return {
+      total,
+      completedGames,
+    };
   }
 
   /*
@@ -485,7 +660,10 @@ export default function Home() {
         loggedInUser.id
       );
 
-      if (round && games.length > 0) {
+      if (
+        round &&
+        games.length > 0
+      ) {
         await loadExistingPicks(
           loggedInUser.id,
           round.id,
@@ -587,7 +765,10 @@ export default function Home() {
       return;
     }
 
-    if (!round || games.length === 0) {
+    if (
+      !round ||
+      games.length === 0
+    ) {
       setMessage(
         "There are no games available."
       );
@@ -806,6 +987,15 @@ export default function Home() {
 
   /*
    --------------------------------------------------
+   RUNNING TOTAL
+   --------------------------------------------------
+  */
+
+  const runningTotal =
+    getRunningTotal();
+
+  /*
+   --------------------------------------------------
    RENDER
    --------------------------------------------------
   */
@@ -858,17 +1048,18 @@ export default function Home() {
         round &&
         games.length > 0 && (
           <>
-            {!locked && lockTime && (
-              <section className="card">
-                <div className="muted">
-                  🔒 PICKS CLOSE IN
-                </div>
+            {!locked &&
+              lockTime && (
+                <section className="card">
+                  <div className="muted">
+                    🔒 PICKS CLOSE IN
+                  </div>
 
-                <h2>
-                  {countdown}
-                </h2>
-              </section>
-            )}
+                  <h2>
+                    {countdown}
+                  </h2>
+                </section>
+              )}
 
             {locked && (
               <section className="card">
@@ -948,6 +1139,27 @@ export default function Home() {
               </section>
             )}
 
+            {user &&
+              submitted &&
+              runningTotal &&
+              runningTotal.completedGames >
+                0 && (
+                <section className="card">
+                  <div className="muted">
+                    YOUR CURRENT SCORE
+                  </div>
+
+                  <h2>
+                    {runningTotal.total} POINTS
+                  </h2>
+
+                  <p className="muted">
+                    {runningTotal.completedGames} of{" "}
+                    {games.length} games completed
+                  </p>
+                </section>
+              )}
+
             <section className="card">
               <p className="muted">
                 {user
@@ -961,6 +1173,15 @@ export default function Home() {
                     predictions[
                       game.id
                     ] || {};
+
+                  const gamePoints =
+                    user &&
+                    submitted
+                      ? getGamePoints(
+                          prediction,
+                          game
+                        )
+                      : null;
 
                   const homeIndex =
                     index * 2;
@@ -989,36 +1210,48 @@ export default function Home() {
                             {game.home_team}
                           </strong>
 
-                          <input
-                            ref={(element) => {
-                              scoreRefs.current[
-                                homeIndex
-                              ] = element;
-                            }}
-                            type="number"
-                            min="0"
-                            max="20"
-                            inputMode="numeric"
-                            value={
-                              prediction.home ===
-                              undefined
-                                ? ""
-                                : prediction.home
-                            }
-                            disabled={
-                              !user ||
-                              submitted ||
-                              locked
-                            }
-                            onChange={(event) =>
-                              updateScore(
-                                game.id,
-                                "home",
-                                event.target.value,
-                                homeIndex
-                              )
-                            }
-                          />
+                          {!game.result_entered ? (
+                            <input
+                              ref={(element) => {
+                                scoreRefs.current[
+                                  homeIndex
+                                ] = element;
+                              }}
+                              type="number"
+                              min="0"
+                              max="20"
+                              inputMode="numeric"
+                              value={
+                                prediction.home ===
+                                undefined
+                                  ? ""
+                                  : prediction.home
+                              }
+                              disabled={
+                                !user ||
+                                submitted ||
+                                locked
+                              }
+                              onChange={(event) =>
+                                updateScore(
+                                  game.id,
+                                  "home",
+                                  event.target.value,
+                                  homeIndex
+                                )
+                              }
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                fontSize: "22px",
+                                fontWeight: "900",
+                                marginTop: "8px"
+                              }}
+                            >
+                              {prediction.home}
+                            </div>
+                          )}
                         </div>
 
                         <div className="vs">
@@ -1026,42 +1259,97 @@ export default function Home() {
                         </div>
 
                         <div className="team">
-                          <input
-                            ref={(element) => {
-                              scoreRefs.current[
-                                awayIndex
-                              ] = element;
-                            }}
-                            type="number"
-                            min="0"
-                            max="20"
-                            inputMode="numeric"
-                            value={
-                              prediction.away ===
-                              undefined
-                                ? ""
-                                : prediction.away
-                            }
-                            disabled={
-                              !user ||
-                              submitted ||
-                              locked
-                            }
-                            onChange={(event) =>
-                              updateScore(
-                                game.id,
-                                "away",
-                                event.target.value,
-                                awayIndex
-                              )
-                            }
-                          />
+                          {!game.result_entered ? (
+                            <input
+                              ref={(element) => {
+                                scoreRefs.current[
+                                  awayIndex
+                                ] = element;
+                              }}
+                              type="number"
+                              min="0"
+                              max="20"
+                              inputMode="numeric"
+                              value={
+                                prediction.away ===
+                                undefined
+                                  ? ""
+                                  : prediction.away
+                              }
+                              disabled={
+                                !user ||
+                                submitted ||
+                                locked
+                              }
+                              onChange={(event) =>
+                                updateScore(
+                                  game.id,
+                                  "away",
+                                  event.target.value,
+                                  awayIndex
+                                )
+                              }
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                fontSize: "22px",
+                                fontWeight: "900",
+                                marginTop: "8px"
+                              }}
+                            >
+                              {prediction.away}
+                            </div>
+                          )}
 
                           <strong>
                             {game.away_team}
                           </strong>
                         </div>
                       </div>
+
+                      {game.result_entered &&
+                        game.home_score !== null &&
+                        game.away_score !== null && (
+                          <div
+                            style={{
+                              marginTop: "14px",
+                              paddingTop: "12px",
+                              borderTop:
+                                "1px solid rgba(255,255,255,0.08)",
+                              textAlign: "center"
+                            }}
+                          >
+                            <div className="muted">
+                              ACTUAL RESULT
+                            </div>
+
+                            <div
+                              style={{
+                                fontSize: "22px",
+                                fontWeight: "900",
+                                marginTop: "4px"
+                              }}
+                            >
+                              {game.home_score}
+                              {" - "}
+                              {game.away_score}
+                            </div>
+
+                            {gamePoints !==
+                              null && (
+                              <div
+                                style={{
+                                  marginTop: "8px",
+                                  fontSize: "17px",
+                                  fontWeight: "900"
+                                }}
+                              >
+                                {gamePoints} POINTS
+                              </div>
+                            )}
+                          </div>
+                        )}
                     </div>
                   );
                 }
