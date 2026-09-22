@@ -20,10 +20,6 @@ export default function SeasonPage() {
 
       const db = supabase();
 
-      // --------------------------------------------------
-      // GET ROUNDS
-      // --------------------------------------------------
-
       const {
         data: roundData,
         error: roundError,
@@ -34,17 +30,10 @@ export default function SeasonPage() {
           ascending: true,
         });
 
-      if (roundError) {
-        throw roundError;
-      }
+      if (roundError) throw roundError;
 
       const roundList = roundData || [];
-
       setRounds(roundList);
-
-      // --------------------------------------------------
-      // GET SEASON LEAGUE PLAYERS
-      // --------------------------------------------------
 
       const {
         data: profileData,
@@ -60,9 +49,7 @@ export default function SeasonPage() {
           ascending: true,
         });
 
-      if (profileError) {
-        throw profileError;
-      }
+      if (profileError) throw profileError;
 
       const profileList = profileData || [];
 
@@ -75,10 +62,7 @@ export default function SeasonPage() {
         (player) => player.id
       );
 
-      // --------------------------------------------------
-      // GET MATCH POINTS
-      // --------------------------------------------------
-
+      // Season Points use MATCH POINTS
       const {
         data: scoreData,
         error: scoreError,
@@ -89,9 +73,7 @@ export default function SeasonPage() {
         )
         .in("player_id", playerIds);
 
-      if (scoreError) {
-        throw scoreError;
-      }
+      if (scoreError) throw scoreError;
 
       const scores = scoreData || [];
 
@@ -102,15 +84,8 @@ export default function SeasonPage() {
         ])
       );
 
-      // --------------------------------------------------
-      // BUILD SEASON POINTS
-      //
-      // Season Points are the player's Match Points
-      // from every Pick 7 game added together.
-      // --------------------------------------------------
-
-      const leaderboard =
-        profileList.map((profile) => {
+      const leaderboard = profileList.map(
+        (profile) => {
           const roundPoints = {};
 
           scores
@@ -123,9 +98,7 @@ export default function SeasonPage() {
               const round =
                 roundMap[score.round_id];
 
-              if (!round) {
-                return;
-              }
+              if (!round) return;
 
               const startRound =
                 profile.season_league_start_round;
@@ -146,8 +119,6 @@ export default function SeasonPage() {
               );
             });
 
-          // Add all round Match Points together
-          // to create Season Points.
           const total =
             Object.values(roundPoints).reduce(
               (sum, points) =>
@@ -157,27 +128,20 @@ export default function SeasonPage() {
 
           return {
             player_id: profile.id,
-
             name:
               profile.display_name ||
               "Player",
-
             rounds: roundPoints,
-
             total,
           };
-        });
+        }
+      );
 
-      // Highest Season Points first
       leaderboard.sort(
         (a, b) =>
           b.total - a.total ||
           a.name.localeCompare(b.name)
       );
-
-      // --------------------------------------------------
-      // POSITIONS
-      // --------------------------------------------------
 
       let previousTotal = null;
       let previousPosition = 0;
@@ -228,17 +192,13 @@ export default function SeasonPage() {
     }
   }
 
-  // --------------------------------------------------
-  // POSITION STYLING
-  // --------------------------------------------------
-
-  function getPositionStyle(position) {
+  function getRowStyle(position) {
     if (position === 1) {
       return {
         border:
           "2px solid #f2c94c",
         background:
-          "linear-gradient(90deg, rgba(242,201,76,0.18), rgba(242,201,76,0.05))",
+          "linear-gradient(90deg, rgba(242,201,76,0.18), rgba(242,201,76,0.04))",
       };
     }
 
@@ -268,7 +228,7 @@ export default function SeasonPage() {
     };
   }
 
-  function getPositionCircle(position) {
+  function getCircleStyle(position) {
     if (position === 1) {
       return {
         background:
@@ -300,10 +260,6 @@ export default function SeasonPage() {
     };
   }
 
-  // --------------------------------------------------
-  // LOADING
-  // --------------------------------------------------
-
   if (loading) {
     return (
       <main className="wrap">
@@ -313,7 +269,7 @@ export default function SeasonPage() {
           </div>
 
           <h2>
-            Pick 7 Season
+            Season Leaderboard
           </h2>
 
           <p className="muted">
@@ -324,10 +280,6 @@ export default function SeasonPage() {
     );
   }
 
-  // --------------------------------------------------
-  // ERROR
-  // --------------------------------------------------
-
   if (message) {
     return (
       <main className="wrap">
@@ -337,7 +289,7 @@ export default function SeasonPage() {
           </div>
 
           <h2>
-            Pick 7 Season
+            Season Leaderboard
           </h2>
 
           <div className="notice">
@@ -348,10 +300,6 @@ export default function SeasonPage() {
     );
   }
 
-  // --------------------------------------------------
-  // MAIN PAGE
-  // --------------------------------------------------
-
   const completedRounds =
     rounds.filter(
       (round) =>
@@ -359,35 +307,32 @@ export default function SeasonPage() {
           round.status
         ).toLowerCase() ===
         "completed"
-    );
+    ).slice(0, 5);
 
   return (
     <main
       className="wrap"
       style={{
-        paddingTop: "10px",
-        paddingBottom: "10px",
+        paddingTop: "6px",
+        paddingBottom: "8px",
       }}
     >
 
-      {/* ------------------------------------------------
-          HEADER
-      ------------------------------------------------ */}
+      {/* HEADER */}
 
       <div
         className="card"
         style={{
-          marginBottom: "8px",
+          marginBottom: "6px",
           padding:
-            "14px 16px",
+            "10px 14px",
         }}
       >
-
         <div
           className="muted"
           style={{
-            fontSize: "12px",
-            marginBottom: "3px",
+            fontSize: "11px",
+            marginBottom: "2px",
           }}
         >
           SEASON LEAGUE
@@ -395,10 +340,9 @@ export default function SeasonPage() {
 
         <h2
           style={{
-            margin:
-              "0 0 4px 0",
-            fontSize: "25px",
-            lineHeight: "1.1",
+            margin: 0,
+            fontSize: "23px",
+            lineHeight: "1.05",
           }}
         >
           📊 Season Leaderboard
@@ -407,362 +351,282 @@ export default function SeasonPage() {
         <p
           className="muted"
           style={{
-            margin: 0,
-            fontSize: "13px",
+            margin:
+              "3px 0 0 0",
+            fontSize: "12px",
           }}
         >
           Season Points after{" "}
           {completedRounds.length}{" "}
           completed rounds.
         </p>
-
       </div>
 
-      {/* ------------------------------------------------
-          LEADERBOARD
-      ------------------------------------------------ */}
+      {/* LEADERBOARD */}
 
       <div
         className="card"
         style={{
-          padding: "8px",
-          marginBottom: "8px",
+          padding: "6px",
+          marginBottom: "6px",
         }}
       >
 
+        {/* HEADER ROW */}
+
         <div
           style={{
+            display: "grid",
+
+            /*
+              Everything is deliberately sized
+              to fit the phone width.
+            */
+
+            gridTemplateColumns:
+              "34px minmax(70px, 1fr) repeat(5, 38px) 48px",
+
+            gap: "2px",
+
+            alignItems: "center",
+
+            marginBottom: "3px",
+
             width: "100%",
-            overflowX: "hidden",
           }}
         >
 
-          {/* HEADER */}
+          <div
+            style={{
+              textAlign: "center",
+              fontWeight: "800",
+              fontSize: "10px",
+              border:
+                "2px solid rgba(0,150,220,0.65)",
+              borderRadius: "6px",
+              padding: "4px 1px",
+            }}
+          >
+            Pos
+          </div>
 
           <div
             style={{
-              display: "grid",
-
-              gridTemplateColumns:
-                "42px minmax(78px,1.4fr) repeat(5,minmax(43px,0.75fr)) minmax(55px,0.9fr)",
-
-              gap: "3px",
-
-              alignItems:
-                "center",
-
-              marginBottom:
-                "4px",
+              fontWeight: "800",
+              fontSize: "10px",
+              paddingLeft: "3px",
             }}
           >
-
-            <div
-              style={{
-                textAlign:
-                  "center",
-                fontWeight:
-                  "800",
-                fontSize:
-                  "11px",
-                border:
-                  "2px solid rgba(0,150,220,0.65)",
-                borderRadius:
-                  "7px",
-                padding:
-                  "5px 1px",
-              }}
-            >
-              Pos
-            </div>
-
-            <div
-              style={{
-                fontWeight:
-                  "800",
-                fontSize:
-                  "11px",
-                paddingLeft:
-                  "5px",
-              }}
-            >
-              Player
-            </div>
-
-            {completedRounds
-              .slice(0, 5)
-              .map((round) => (
-                <div
-                  key={round.id}
-                  style={{
-                    border:
-                      "2px solid rgba(0,150,220,0.65)",
-                    borderRadius:
-                      "7px",
-                    padding:
-                      "5px 1px",
-                    textAlign:
-                      "center",
-                    fontWeight:
-                      "800",
-                    fontSize:
-                      "11px",
-                  }}
-                >
-                  R
-                  {
-                    round.round_number
-                  }
-                </div>
-              ))}
-
-            <div
-              style={{
-                border:
-                  "2px solid rgba(0,150,220,0.8)",
-                borderRadius:
-                  "7px",
-                padding:
-                  "5px 1px",
-                textAlign:
-                  "center",
-                fontWeight:
-                  "800",
-                fontSize:
-                  "11px",
-              }}
-            >
-              Season
-            </div>
-
+            Player
           </div>
 
-          {/* PLAYERS */}
+          {completedRounds.map(
+            (round) => (
+              <div
+                key={round.id}
+                style={{
+                  border:
+                    "2px solid rgba(0,150,220,0.65)",
+                  borderRadius: "6px",
+                  padding: "4px 0",
+                  textAlign: "center",
+                  fontWeight: "800",
+                  fontSize: "10px",
+                }}
+              >
+                R{round.round_number}
+              </div>
+            )
+          )}
 
           <div
             style={{
-              display:
-                "flex",
-              flexDirection:
-                "column",
-              gap: "3px",
+              border:
+                "2px solid rgba(0,150,220,0.8)",
+              borderRadius: "6px",
+              padding: "4px 0",
+              textAlign: "center",
+              fontWeight: "800",
+              fontSize: "10px",
             }}
           >
-
-            {players.map(
-              (player) => {
-
-                const rowStyle =
-                  getPositionStyle(
-                    player.position
-                  );
-
-                const circleStyle =
-                  getPositionCircle(
-                    player.position
-                  );
-
-                return (
-                  <div
-                    key={
-                      player.player_id
-                    }
-                    style={{
-                      display:
-                        "grid",
-
-                      gridTemplateColumns:
-                        "42px minmax(78px,1.4fr) repeat(5,minmax(43px,0.75fr)) minmax(55px,0.9fr)",
-
-                      gap: "3px",
-
-                      alignItems:
-                        "center",
-
-                      minHeight:
-                        "35px",
-
-                      padding:
-                        "2px",
-
-                      borderRadius:
-                        "7px",
-
-                      ...rowStyle,
-                    }}
-                  >
-
-                    {/* POSITION */}
-
-                    <div
-                      style={{
-                        display:
-                          "flex",
-                        justifyContent:
-                          "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width:
-                            "25px",
-                          height:
-                            "25px",
-                          borderRadius:
-                            "50%",
-                          display:
-                            "flex",
-                          alignItems:
-                            "center",
-                          justifyContent:
-                            "center",
-                          fontWeight:
-                            "800",
-                          fontSize:
-                            "12px",
-                          ...circleStyle,
-                        }}
-                      >
-                        {
-                          player.position
-                        }
-                      </div>
-                    </div>
-
-                    {/* PLAYER */}
-
-                    <div
-                      style={{
-                        fontWeight:
-                          "700",
-                        fontSize:
-                          "12px",
-                        paddingLeft:
-                          "3px",
-                        whiteSpace:
-                          "nowrap",
-                        overflow:
-                          "hidden",
-                        textOverflow:
-                          "ellipsis",
-                      }}
-                    >
-                      {
-                        player.name
-                      }
-                    </div>
-
-                    {/* ROUNDS */}
-
-                    {completedRounds
-                      .slice(0, 5)
-                      .map(
-                        (round) => {
-
-                          const value =
-                            player
-                              .rounds[
-                              round.id
-                            ];
-
-                          return (
-                            <div
-                              key={
-                                round.id
-                              }
-                              style={{
-                                border:
-                                  "2px solid rgba(0,150,220,0.65)",
-
-                                borderRadius:
-                                  "6px",
-
-                                padding:
-                                  "5px 1px",
-
-                                textAlign:
-                                  "center",
-
-                                fontSize:
-                                  "11px",
-
-                                lineHeight:
-                                  "1",
-
-                                background:
-                                  "rgba(0,50,85,0.22)",
-                              }}
-                            >
-                              {
-                                value ??
-                                "–"
-                              }
-                            </div>
-                          );
-                        }
-                      )}
-
-                    {/* SEASON TOTAL */}
-
-                    <div
-                      style={{
-                        border:
-                          "2px solid rgba(0,150,220,0.8)",
-
-                        borderRadius:
-                          "6px",
-
-                        padding:
-                          "5px 1px",
-
-                        textAlign:
-                          "center",
-
-                        fontSize:
-                          "13px",
-
-                        lineHeight:
-                          "1",
-
-                        fontWeight:
-                          "900",
-
-                        background:
-                          "rgba(0,80,125,0.25)",
-                      }}
-                    >
-                      {
-                        player.total
-                      }
-                    </div>
-
-                  </div>
-                );
-              }
-            )}
-
+            Total
           </div>
-
         </div>
 
+        {/* PLAYER ROWS */}
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "2px",
+          }}
+        >
+
+          {players.map(
+            (player) => (
+              <div
+                key={player.player_id}
+                style={{
+                  display: "grid",
+
+                  gridTemplateColumns:
+                    "34px minmax(70px, 1fr) repeat(5, 38px) 48px",
+
+                  gap: "2px",
+
+                  alignItems: "center",
+
+                  minHeight: "32px",
+
+                  padding: "2px",
+
+                  borderRadius: "6px",
+
+                  width: "100%",
+
+                  boxSizing:
+                    "border-box",
+
+                  ...getRowStyle(
+                    player.position
+                  ),
+                }}
+              >
+
+                {/* POSITION */}
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent:
+                      "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "23px",
+                      height: "23px",
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent:
+                        "center",
+                      fontWeight: "800",
+                      fontSize: "11px",
+                      ...getCircleStyle(
+                        player.position
+                      ),
+                    }}
+                  >
+                    {player.position}
+                  </div>
+                </div>
+
+                {/* PLAYER */}
+
+                <div
+                  style={{
+                    fontWeight: "700",
+                    fontSize: "11px",
+                    paddingLeft: "2px",
+                    whiteSpace:
+                      "nowrap",
+                    overflow:
+                      "hidden",
+                    textOverflow:
+                      "ellipsis",
+                  }}
+                >
+                  {player.name}
+                </div>
+
+                {/* ROUND POINTS */}
+
+                {completedRounds.map(
+                  (round) => {
+                    const value =
+                      player.rounds[
+                        round.id
+                      ];
+
+                    return (
+                      <div
+                        key={round.id}
+                        style={{
+                          border:
+                            "2px solid rgba(0,150,220,0.65)",
+                          borderRadius: "5px",
+                          padding:
+                            "5px 0",
+                          textAlign:
+                            "center",
+                          fontSize:
+                            "10px",
+                          lineHeight:
+                            "1",
+                          background:
+                            "rgba(0,50,85,0.22)",
+                          boxSizing:
+                            "border-box",
+                        }}
+                      >
+                        {value ??
+                          "–"}
+                      </div>
+                    );
+                  }
+                )}
+
+                {/* SEASON TOTAL */}
+
+                <div
+                  style={{
+                    border:
+                      "2px solid rgba(0,150,220,0.8)",
+                    borderRadius: "5px",
+                    padding:
+                      "5px 0",
+                    textAlign:
+                      "center",
+                    fontSize:
+                      "11px",
+                    lineHeight:
+                      "1",
+                    fontWeight:
+                      "900",
+                    background:
+                      "rgba(0,80,125,0.25)",
+                    boxSizing:
+                      "border-box",
+                  }}
+                >
+                  {player.total}
+                </div>
+
+              </div>
+            )
+          )}
+
+        </div>
       </div>
 
-      {/* ------------------------------------------------
-          HOW IT WORKS
-      ------------------------------------------------ */}
+      {/* HOW IT WORKS */}
 
       <div
         className="card"
         style={{
           padding:
-            "10px 12px",
+            "8px 10px",
         }}
       >
 
         <h3
           style={{
             margin:
-              "0 0 4px 0",
-            fontSize: "14px",
+              "0 0 3px 0",
+            fontSize: "13px",
           }}
         >
           ℹ️ How the Season Works
@@ -772,18 +636,16 @@ export default function SeasonPage() {
           className="muted"
           style={{
             margin: 0,
-            fontSize: "11px",
-            lineHeight:
-              "1.35",
+            fontSize: "10px",
+            lineHeight: "1.3",
           }}
         >
-          Every Pick 7 game earns
-          Match Points: exact score =
-          10, correct result = 6,
-          wrong result = 0.
-          These points are added together
-          from every round to give your
-          Season Points.
+          Exact score = 10 points.
+          Correct result = 6 points.
+          Wrong result = 0 points.
+          All Match Points are added
+          together to give your Season
+          Points.
         </p>
 
       </div>
