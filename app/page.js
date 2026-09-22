@@ -72,7 +72,9 @@ export default function Home() {
         error: roundError,
       } = await db
         .from("rounds")
-        .select("id, round_number, status")
+        .select(
+          "id, round_number, status, matchday, predictions_deadline"
+        )
         .eq("status", "open")
         .order("round_number", {
           ascending: false,
@@ -152,18 +154,49 @@ export default function Home() {
 
       setGames(orderedGames);
 
-      const earliestKickoff = Math.min(
-        ...orderedGames.map((game) =>
-          new Date(game.kickoff).getTime()
-        )
-      );
+      /*
+       --------------------------------------------------
+       USE DATABASE ROUND DEADLINE
+       --------------------------------------------------
+       
+       The database deadline is set to one hour before
+       the earliest Premier League fixture in the
+       Matchweek, whether or not that fixture is one
+       of the seven Pick 7 games.
+      */
 
-      const firstKickoff = new Date(
-        earliestKickoff
-      ).toISOString();
+      const deadline = currentRound.predictions_deadline;
 
-      setLockTime(firstKickoff);
-      setLocked(earliestKickoff <= Date.now());
+      if (deadline) {
+        const deadlineTime =
+          new Date(deadline).getTime();
+
+        setLockTime(deadline);
+        setLocked(deadlineTime <= Date.now());
+      } else {
+        /*
+         Fallback only if the database deadline is
+         missing. In that case use one hour before
+         the earliest selected Pick 7 game.
+        */
+
+        const earliestKickoff = Math.min(
+          ...orderedGames.map((game) =>
+            new Date(game.kickoff).getTime()
+          )
+        );
+
+        const fallbackDeadline = new Date(
+          earliestKickoff - 60 * 60 * 1000
+        ).toISOString();
+
+        setLockTime(fallbackDeadline);
+
+        setLocked(
+          new Date(fallbackDeadline).getTime() <=
+            Date.now()
+        );
+      }
 
       /*
        --------------------------------------------------
@@ -259,10 +292,8 @@ export default function Home() {
       }
     }
 
-    // Check immediately
     refreshResults();
 
-    // Then check every 30 seconds
     const interval = setInterval(
       refreshResults,
       30000
@@ -471,11 +502,6 @@ export default function Home() {
       });
 
       setPredictions(saved);
-
-      /*
-       If all games have predictions,
-       the picks are already submitted.
-      */
 
       if (
         data.length === currentGames.length
@@ -720,11 +746,6 @@ export default function Home() {
             : Number(value),
       },
     }));
-
-    /*
-     Automatically move to the
-     next score box.
-    */
 
     if (value !== "") {
       const next =
@@ -1002,16 +1023,31 @@ export default function Home() {
 
   return (
     <main className="wrap">
+
       <section className="card hero">
+
         <div className="pill">
           {round
-            ? `ROUND ${round.round_number} • ${
+            ? `ROUND ${((round.round_number - 1) % 5) + 1} OF 5 • ${
                 locked
                   ? "LOCKED"
                   : "OPEN"
               }`
             : "PICK 7"}
         </div>
+
+        {round && (
+          <div
+            className="muted"
+            style={{
+              marginTop: "10px",
+              fontWeight: "800",
+              letterSpacing: "0.5px"
+            }}
+          >
+            COMPETITION 2 • NEW 5-ROUND SERIES
+          </div>
+        )}
 
         <h2>
           {round
@@ -1025,6 +1061,7 @@ export default function Home() {
           Predict the exact score for every
           selected match.
         </p>
+
       </section>
 
       {loading && (
@@ -1048,6 +1085,7 @@ export default function Home() {
         round &&
         games.length > 0 && (
           <>
+
             {!locked &&
               lockTime && (
                 <section className="card">
@@ -1071,6 +1109,7 @@ export default function Home() {
 
             {!user && (
               <section className="card">
+
                 <h3>
                   🔐 SIGN IN TO PLAY
                 </h3>
@@ -1088,6 +1127,7 @@ export default function Home() {
                     gap: "10px",
                   }}
                 >
+
                   <select
                     className="input"
                     value={playerName}
@@ -1097,6 +1137,7 @@ export default function Home() {
                       )
                     }
                   >
+
                     <option value="">
                       Select your player name
                     </option>
@@ -1111,6 +1152,7 @@ export default function Home() {
                         </option>
                       )
                     )}
+
                   </select>
 
                   <input
@@ -1135,7 +1177,9 @@ export default function Home() {
                       ? "SIGNING IN..."
                       : "SIGN IN"}
                   </button>
+
                 </form>
+
               </section>
             )}
 
@@ -1145,6 +1189,7 @@ export default function Home() {
               runningTotal.completedGames >
                 0 && (
                 <section className="card">
+
                   <div className="muted">
                     YOUR CURRENT SCORE
                   </div>
@@ -1157,10 +1202,12 @@ export default function Home() {
                     {runningTotal.completedGames} of{" "}
                     {games.length} games completed
                   </p>
+
                 </section>
               )}
 
             <section className="card">
+
               <p className="muted">
                 {user
                   ? "Enter your predicted scores."
@@ -1169,6 +1216,7 @@ export default function Home() {
 
               {games.map(
                 (game, index) => {
+
                   const prediction =
                     predictions[
                       game.id
@@ -1194,6 +1242,7 @@ export default function Home() {
                       className="fixture"
                       key={game.id}
                     >
+
                       <div className="fixtureNumber">
                         GAME {index + 1}
                       </div>
@@ -1205,7 +1254,9 @@ export default function Home() {
                       </div>
 
                       <div className="teams">
+
                         <div className="team">
+
                           <strong>
                             {game.home_team}
                           </strong>
@@ -1252,6 +1303,7 @@ export default function Home() {
                               {prediction.home}
                             </div>
                           )}
+
                         </div>
 
                         <div className="vs">
@@ -1259,6 +1311,7 @@ export default function Home() {
                         </div>
 
                         <div className="team">
+
                           {!game.result_entered ? (
                             <input
                               ref={(element) => {
@@ -1305,7 +1358,9 @@ export default function Home() {
                           <strong>
                             {game.away_team}
                           </strong>
+
                         </div>
+
                       </div>
 
                       {game.result_entered &&
@@ -1320,6 +1375,7 @@ export default function Home() {
                               textAlign: "center"
                             }}
                           >
+
                             <div className="muted">
                               ACTUAL RESULT
                             </div>
@@ -1348,12 +1404,15 @@ export default function Home() {
                                 {gamePoints} POINTS
                               </div>
                             )}
+
                           </div>
                         )}
+
                     </div>
                   );
                 }
               )}
+
             </section>
 
             {message && (
@@ -1366,6 +1425,7 @@ export default function Home() {
 
             {user && (
               <section className="card">
+
                 <p className="muted">
                   👤 Signed in
                 </p>
@@ -1391,6 +1451,7 @@ export default function Home() {
                 )}
 
                 <div className="account-actions">
+
                   <button
                     type="button"
                     onClick={() =>
@@ -1409,6 +1470,7 @@ export default function Home() {
                   >
                     ⇥ SIGN OUT
                   </button>
+
                 </div>
 
                 {changePasswordOpen && (
@@ -1418,6 +1480,7 @@ export default function Home() {
                       marginTop: "14px",
                     }}
                   >
+
                     <h3>
                       Change Passcode
                     </h3>
@@ -1430,6 +1493,7 @@ export default function Home() {
                         gap: "10px",
                       }}
                     >
+
                       <input
                         className="input"
                         type="password"
@@ -1487,7 +1551,9 @@ export default function Home() {
                       >
                         CANCEL
                       </button>
+
                     </div>
+
                   </div>
                 )}
 
@@ -1506,10 +1572,13 @@ export default function Home() {
                     ⚙️ ADMIN
                   </a>
                 )}
+
               </section>
             )}
+
           </>
         )}
+
     </main>
   );
 }
