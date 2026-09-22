@@ -165,10 +165,80 @@ export default function CompetitionPage() {
         throw error;
       }
 
+      const rows = data || [];
+
+      /*
+       --------------------------------------------------
+       GET TEAM NAMES
+       --------------------------------------------------
+      */
+
+      const fixtureIds = [
+        ...new Set(
+          rows
+            .map(row => row.fixture_id)
+            .filter(Boolean)
+        )
+      ];
+
+      let fixtures = [];
+
+      if (fixtureIds.length > 0) {
+        const {
+          data: fixtureData,
+          error: fixtureError
+        } = await supabase()
+          .from("fixtures")
+          .select(
+            "id, home_team, away_team"
+          )
+          .in(
+            "id",
+            fixtureIds
+          );
+
+        if (fixtureError) {
+          throw fixtureError;
+        }
+
+        fixtures = fixtureData || [];
+      }
+
+      const fixtureMap =
+        Object.fromEntries(
+          fixtures.map(
+            fixture => [
+              fixture.id,
+              fixture
+            ]
+          )
+        );
+
+      /*
+       Add the team names to every
+       completed-game result.
+      */
+
+      const enrichedRows =
+        rows.map(row => ({
+          ...row,
+
+          home_team:
+            fixtureMap[
+              row.fixture_id
+            ]?.home_team || "",
+
+          away_team:
+            fixtureMap[
+              row.fixture_id
+            ]?.away_team || ""
+        }));
+
       setRoundDetails(
         current => ({
           ...current,
-          [roundId]: data || []
+          [roundId]:
+            enrichedRows
         })
       );
     } catch (error) {
@@ -179,8 +249,10 @@ export default function CompetitionPage() {
 
       setMessage(
         "Unable to load round results: " +
-          (error?.message ||
-            "Unknown error")
+          (
+            error?.message ||
+            "Unknown error"
+          )
       );
     } finally {
       setLoadingRound(null);
@@ -193,15 +265,21 @@ export default function CompetitionPage() {
    --------------------------------------------------
   */
 
-  async function toggleRound(round) {
+  async function toggleRound(
+    round
+  ) {
     if (
-      String(round.status).toLowerCase() !==
+      String(
+        round.status
+      ).toLowerCase() !==
       "completed"
     ) {
       return;
     }
 
-    if (openRound === round.id) {
+    if (
+      openRound === round.id
+    ) {
       setOpenRound(null);
       return;
     }
@@ -219,12 +297,16 @@ export default function CompetitionPage() {
    --------------------------------------------------
   */
 
-  function roundStatus(status) {
+  function roundStatus(
+    status
+  ) {
     if (!status) {
       return "NOT STARTED";
     }
 
-    return String(status).toUpperCase();
+    return String(
+      status
+    ).toUpperCase();
   }
 
   /*
@@ -256,8 +338,14 @@ export default function CompetitionPage() {
     const players = {};
 
     details.forEach(row => {
-      if (!players[row.player_id]) {
-        players[row.player_id] = {
+      if (
+        !players[
+          row.player_id
+        ]
+      ) {
+        players[
+          row.player_id
+        ] = {
           player_id:
             row.player_id,
 
@@ -291,7 +379,13 @@ export default function CompetitionPage() {
           row.actual_home,
 
         away:
-          row.actual_away
+          row.actual_away,
+
+        home_team:
+          row.home_team,
+
+        away_team:
+          row.away_team
       };
 
       players[
@@ -343,7 +437,8 @@ export default function CompetitionPage() {
       players
     ).sort(
       (a, b) =>
-        b.total - a.total ||
+        b.total -
+          a.total ||
         a.name.localeCompare(
           b.name
         )
@@ -380,7 +475,13 @@ export default function CompetitionPage() {
             row.actual_home,
 
           actual_away:
-            row.actual_away
+            row.actual_away,
+
+          home_team:
+            row.home_team,
+
+          away_team:
+            row.away_team
         };
       }
     });
@@ -485,6 +586,7 @@ export default function CompetitionPage() {
       {/* Competition header */}
 
       <div className="card">
+
         <div className="muted">
           5 ROUND COMPETITION
         </div>
@@ -502,6 +604,7 @@ export default function CompetitionPage() {
           Each completed round shows
           everyone's results.
         </p>
+
       </div>
 
       {/* Competition rounds */}
@@ -521,163 +624,184 @@ export default function CompetitionPage() {
           }}
         >
 
-          {rounds.map(round => {
+          {rounds.map(
+            round => {
 
-            const completed =
-              String(
-                round.status
-              ).toLowerCase() ===
-              "completed";
+              const completed =
+                String(
+                  round.status
+                ).toLowerCase() ===
+                "completed";
 
-            const isOpen =
-              openRound ===
-              round.id;
+              const isOpen =
+                openRound ===
+                round.id;
 
-            const details =
-              roundDetails[
-                round.id
-              ] || [];
+              const details =
+                roundDetails[
+                  round.id
+                ] || [];
 
-            const playerResults =
-              buildPlayerResults(
-                details,
-                round.id
-              );
+              const playerResults =
+                buildPlayerResults(
+                  details,
+                  round.id
+                );
 
-            const fixtures =
-              getFixtures(
-                details
-              );
+              const fixtures =
+                getFixtures(
+                  details
+                );
 
-            return (
-              <div
-                key={round.id}
-                style={{
-                  borderRadius:
-                    "12px",
-                  background:
-                    "rgba(255,255,255,0.05)",
-                  border:
-                    "1px solid rgba(255,255,255,0.08)",
-                  overflow:
-                    "hidden"
-                }}
-              >
-
-                {/* Round button */}
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    toggleRound(
-                      round
-                    )
-                  }
-                  disabled={
-                    !completed
+              return (
+                <div
+                  key={
+                    round.id
                   }
                   style={{
-                    width: "100%",
-                    display:
-                      "flex",
-                    justifyContent:
-                      "space-between",
-                    alignItems:
-                      "center",
-                    padding:
-                      "16px",
-                    border:
-                      "none",
+                    borderRadius:
+                      "12px",
+
                     background:
-                      "transparent",
-                    color:
-                      "inherit",
-                    cursor:
-                      completed
-                        ? "pointer"
-                        : "default",
-                    fontSize:
-                      "16px"
+                      "rgba(255,255,255,0.05)",
+
+                    border:
+                      "1px solid rgba(255,255,255,0.08)",
+
+                    overflow:
+                      "hidden"
                   }}
                 >
 
-                  <strong>
-                    Round{" "}
-                    {
-                      round.round_number
-                    }
-                  </strong>
+                  {/* Round button */}
 
-                  <span
+                  <button
+                    type="button"
+                    onClick={() =>
+                      toggleRound(
+                        round
+                      )
+                    }
+                    disabled={
+                      !completed
+                    }
                     style={{
+                      width: "100%",
+
                       display:
                         "flex",
+
+                      justifyContent:
+                        "space-between",
+
                       alignItems:
                         "center",
-                      gap:
-                        "10px"
+
+                      padding:
+                        "16px",
+
+                      border:
+                        "none",
+
+                      background:
+                        "transparent",
+
+                      color:
+                        "inherit",
+
+                      cursor:
+                        completed
+                          ? "pointer"
+                          : "default",
+
+                      fontSize:
+                        "16px"
                     }}
                   >
-                    <span className="muted">
+
+                    <strong>
+                      Round{" "}
                       {
-                        roundStatus(
-                          round.status
-                        )
+                        round.round_number
                       }
+                    </strong>
+
+                    <span
+                      style={{
+                        display:
+                          "flex",
+
+                        alignItems:
+                          "center",
+
+                        gap:
+                          "10px"
+                      }}
+                    >
+
+                      <span className="muted">
+                        {
+                          roundStatus(
+                            round.status
+                          )
+                        }
+                      </span>
+
+                      {completed && (
+                        <span
+                          style={{
+                            fontSize:
+                              "18px"
+                          }}
+                        >
+                          {isOpen
+                            ? "▲"
+                            : "▼"}
+                        </span>
+                      )}
+
                     </span>
 
-                    {completed && (
-                      <span
-                        style={{
-                          fontSize:
-                            "18px"
-                        }}
-                      >
-                        {isOpen
-                          ? "▲"
-                          : "▼"}
-                      </span>
-                    )}
-                  </span>
+                  </button>
 
-                </button>
+                  {/* Expanded round */}
 
-                {/* Expanded round */}
+                  {isOpen && (
+                    <div
+                      style={{
+                        padding:
+                          "0 14px 16px 14px",
 
-                {isOpen && (
-                  <div
-                    style={{
-                      padding:
-                        "0 14px 16px 14px",
-                      borderTop:
-                        "1px solid rgba(255,255,255,0.08)"
-                    }}
-                  >
+                        borderTop:
+                          "1px solid rgba(255,255,255,0.08)"
+                      }}
+                    >
 
-                    {loadingRound ===
-                      round.id && (
-                      <div
-                        style={{
-                          padding:
-                            "18px 0",
-                          textAlign:
-                            "center"
-                        }}
-                      >
-                        <p className="muted">
-                          Loading Round{" "}
-                          {
-                            round.round_number
-                          }{" "}
-                          results...
-                        </p>
-                      </div>
-                    )}
+                      {loadingRound ===
+                        round.id && (
+                        <div
+                          style={{
+                            padding:
+                              "18px 0",
 
-                    {loadingRound !==
-                      round.id &&
-                      details.length ===
-                        0 && (
+                            textAlign:
+                              "center"
+                          }}
+                        >
+                          <p className="muted">
+                            Loading Round{" "}
+                            {
+                              round.round_number
+                            }{" "}
+                            results...
+                          </p>
+                        </div>
+                      )}
+
+                      {loadingRound !==
+                        round.id &&
+                        details.length ===
+                          0 && (
                         <div
                           style={{
                             padding:
@@ -685,17 +809,17 @@ export default function CompetitionPage() {
                           }}
                         >
                           <p className="muted">
-                            No completed results
-                            are available
-                            yet.
+                            No completed
+                            results are
+                            available yet.
                           </p>
                         </div>
                       )}
 
-                    {loadingRound !==
-                      round.id &&
-                      details.length >
-                        0 && (
+                      {loadingRound !==
+                        round.id &&
+                        details.length >
+                          0 && (
                         <>
 
                           {/* Actual results */}
@@ -704,6 +828,7 @@ export default function CompetitionPage() {
                             style={{
                               marginTop:
                                 "14px",
+
                               marginBottom:
                                 "18px"
                             }}
@@ -723,8 +848,10 @@ export default function CompetitionPage() {
                               style={{
                                 display:
                                   "grid",
+
                                 gridTemplateColumns:
                                   "repeat(2, minmax(0, 1fr))",
+
                                 gap:
                                   "8px"
                               }}
@@ -739,10 +866,13 @@ export default function CompetitionPage() {
                                     style={{
                                       padding:
                                         "10px",
+
                                       borderRadius:
                                         "10px",
+
                                       background:
                                         "rgba(255,255,255,0.04)",
+
                                       textAlign:
                                         "center"
                                     }}
@@ -752,13 +882,15 @@ export default function CompetitionPage() {
                                       className="muted"
                                       style={{
                                         fontSize:
-                                          "12px"
+                                          "12px",
+
+                                        lineHeight:
+                                          "1.3"
                                       }}
                                     >
-                                      GAME{" "}
-                                      {
-                                        fixture.fixture_number
-                                      }
+                                      {fixture.home_team}
+                                      {" v "}
+                                      {fixture.away_team}
                                     </div>
 
                                     <strong
@@ -770,7 +902,9 @@ export default function CompetitionPage() {
                                       {
                                         fixture.actual_home
                                       }
+
                                       {" - "}
+
                                       {
                                         fixture.actual_away
                                       }
@@ -781,6 +915,7 @@ export default function CompetitionPage() {
                               )}
 
                             </div>
+
                           </div>
 
                           {/* Player results */}
@@ -799,6 +934,7 @@ export default function CompetitionPage() {
                             style={{
                               overflowX:
                                 "auto",
+
                               WebkitOverflowScrolling:
                                 "touch"
                             }}
@@ -808,12 +944,14 @@ export default function CompetitionPage() {
                               style={{
                                 minWidth:
                                   "650px",
+
                                 width:
                                   "100%"
                               }}
                             >
 
                               <thead>
+
                                 <tr>
 
                                   <th>
@@ -849,6 +987,7 @@ export default function CompetitionPage() {
                                   </th>
 
                                 </tr>
+
                               </thead>
 
                               <tbody>
@@ -946,10 +1085,13 @@ export default function CompetitionPage() {
                                   style={{
                                     marginBottom:
                                       "8px",
+
                                     border:
                                       "1px solid rgba(255,255,255,0.08)",
+
                                     borderRadius:
                                       "10px",
+
                                     overflow:
                                       "hidden"
                                   }}
@@ -959,14 +1101,18 @@ export default function CompetitionPage() {
                                     style={{
                                       padding:
                                         "13px",
+
                                       cursor:
                                         "pointer",
+
                                       fontWeight:
                                         "700",
+
                                       background:
                                         "rgba(255,255,255,0.04)"
                                     }}
                                   >
+
                                     {
                                       player.name
                                     }
@@ -975,8 +1121,10 @@ export default function CompetitionPage() {
 
                                     {
                                       player.total
-                                    }{" "}
-                                    MATCH POINTS
+                                    }
+
+                                    {" MATCH POINTS"}
+
                                   </summary>
 
                                   <div
@@ -1016,6 +1164,7 @@ export default function CompetitionPage() {
                                             style={{
                                               padding:
                                                 "10px 4px",
+
                                               borderBottom:
                                                 "1px solid rgba(255,255,255,0.06)"
                                             }}
@@ -1023,23 +1172,32 @@ export default function CompetitionPage() {
 
                                             <div
                                               className="muted"
+                                              style={{
+                                                lineHeight:
+                                                  "1.3"
+                                              }}
                                             >
-                                              GAME{" "}
-                                              {
-                                                number
-                                              }
+
+                                              {game.home_team}
+                                              {" v "}
+                                              {game.away_team}
+
                                             </div>
 
                                             <div
                                               style={{
                                                 display:
                                                   "flex",
+
                                                 justifyContent:
                                                   "space-between",
+
                                                 alignItems:
                                                   "center",
+
                                                 gap:
                                                   "10px",
+
                                                 marginTop:
                                                   "4px"
                                               }}
@@ -1057,8 +1215,9 @@ export default function CompetitionPage() {
                                               <strong>
                                                 {
                                                   game.points
-                                                }{" "}
-                                                POINTS
+                                                }
+
+                                                {" POINTS"}
                                               </strong>
 
                                             </div>
@@ -1092,12 +1251,13 @@ export default function CompetitionPage() {
                         </>
                       )}
 
-                  </div>
-                )}
+                    </div>
+                  )}
 
-              </div>
-            );
-          })}
+                </div>
+              );
+            }
+          )}
 
           {rounds.length ===
             0 && (
@@ -1108,6 +1268,7 @@ export default function CompetitionPage() {
           )}
 
         </div>
+
       </div>
 
       {/* Leaderboard */}
@@ -1133,7 +1294,9 @@ export default function CompetitionPage() {
           <table>
 
             <thead>
+
               <tr>
+
                 <th>
                   Pos
                 </th>
@@ -1161,7 +1324,9 @@ export default function CompetitionPage() {
                 <th className="right">
                   Total
                 </th>
+
               </tr>
+
             </thead>
 
             <tbody>
@@ -1184,8 +1349,12 @@ export default function CompetitionPage() {
                       ] = {
                         player_id:
                           score.player_id,
-                        total: 0,
-                        rounds: {}
+
+                        total:
+                          0,
+
+                        rounds:
+                          {}
                       };
                     }
 
