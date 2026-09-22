@@ -20,31 +20,38 @@ export default function SeasonPage() {
 
       const db = supabase();
 
-      // Get all Pick 7 rounds
+      // --------------------------------------------------
+      // GET ROUNDS
+      // --------------------------------------------------
+
       const {
         data: roundData,
-        error: roundError
+        error: roundError,
       } = await db
         .from("rounds")
         .select(
           "id, round_number, status"
         )
         .order("round_number", {
-          ascending: true
+          ascending: true,
         });
 
       if (roundError) {
         throw roundError;
       }
 
-      const roundList = roundData || [];
+      const roundList =
+        roundData || [];
 
       setRounds(roundList);
 
-      // Get players who are in the Season League
+      // --------------------------------------------------
+      // GET SEASON LEAGUE PLAYERS
+      // --------------------------------------------------
+
       const {
         data: profileData,
-        error: profileError
+        error: profileError,
       } = await db
         .from("profiles")
         .select(
@@ -53,119 +60,156 @@ export default function SeasonPage() {
         .eq("season_league", true)
         .eq("active", true)
         .order("display_name", {
-          ascending: true
+          ascending: true,
         });
 
       if (profileError) {
         throw profileError;
       }
 
-      const profileList = profileData || [];
+      const profileList =
+        profileData || [];
 
       if (profileList.length === 0) {
         setPlayers([]);
         return;
       }
 
-      const playerIds = profileList.map(
-        player => player.id
-      );
+      const playerIds =
+        profileList.map(
+          (player) => player.id
+        );
 
-      // Get their Pick 7 round scores
+      // --------------------------------------------------
+      // GET COMPETITION POINTS
+      // --------------------------------------------------
+
       const {
         data: scoreData,
-        error: scoreError
+        error: scoreError,
       } = await db
         .from("round_scores")
         .select(
-          "round_id, player_id, match_points"
+          "round_id, player_id, competition_points"
         )
-        .in("player_id", playerIds);
+        .in(
+          "player_id",
+          playerIds
+        );
 
       if (scoreError) {
         throw scoreError;
       }
 
-      const scores = scoreData || [];
+      const scores =
+        scoreData || [];
 
-      const roundMap = Object.fromEntries(
-        roundList.map(round => [
-          round.id,
-          round
-        ])
-      );
+      const roundMap =
+        Object.fromEntries(
+          roundList.map(
+            (round) => [
+              round.id,
+              round,
+            ]
+          )
+        );
 
-      const leaderboard = profileList.map(
-        profile => {
-          const roundPoints = {};
+      // --------------------------------------------------
+      // BUILD SEASON LEAGUE
+      // --------------------------------------------------
 
-          scores
-            .filter(
-              score =>
-                score.player_id ===
-                profile.id
-            )
-            .forEach(score => {
-              const round =
-                roundMap[score.round_id];
+      const leaderboard =
+        profileList.map(
+          (profile) => {
+            const roundPoints =
+              {};
 
-              if (!round) {
-                return;
-              }
+            scores
+              .filter(
+                (score) =>
+                  score.player_id ===
+                  profile.id
+              )
+              .forEach(
+                (score) => {
+                  const round =
+                    roundMap[
+                      score.round_id
+                    ];
 
-              // Only count points from the
-              // round the player joined the
-              // Season League.
-              const startRound =
-                profile.season_league_start_round;
+                  if (!round) {
+                    return;
+                  }
 
-              if (
-                startRound !== null &&
-                startRound !== undefined &&
-                round.round_number <
-                  startRound
-              ) {
-                return;
-              }
+                  // Only count rounds from
+                  // the player's joining round.
+                  const startRound =
+                    profile.season_league_start_round;
 
-              roundPoints[
-                score.round_id
-              ] = Number(
-                score.match_points || 0
+                  if (
+                    startRound !==
+                      null &&
+                    startRound !==
+                      undefined &&
+                    round.round_number <
+                      startRound
+                  ) {
+                    return;
+                  }
+
+                  roundPoints[
+                    score.round_id
+                  ] = Number(
+                    score.competition_points ||
+                      0
+                  );
+                }
               );
-            });
 
-          // Add every eligible round.
-          const total =
-            Object.values(
-              roundPoints
-            ).reduce(
-              (sum, points) =>
-                sum + points,
-              0
-            );
+            const total =
+              Object.values(
+                roundPoints
+              ).reduce(
+                (sum, points) =>
+                  sum + points,
+                0
+              );
 
-          return {
-            player_id: profile.id,
-            name:
-              profile.display_name ||
-              "Player",
-            rounds: roundPoints,
-            total
-          };
-        }
-      );
+            return {
+              player_id:
+                profile.id,
 
-      // Highest Season total first.
+              name:
+                profile.display_name ||
+                "Player",
+
+              rounds:
+                roundPoints,
+
+              total,
+            };
+          }
+        );
+
+      // Highest Competition Point
+      // total first.
       leaderboard.sort(
         (a, b) =>
           b.total - a.total ||
-          a.name.localeCompare(b.name)
+          a.name.localeCompare(
+            b.name
+          )
       );
 
-      // Assign positions.
-      let previousTotal = null;
-      let previousPosition = 0;
+      // --------------------------------------------------
+      // POSITIONS
+      // --------------------------------------------------
+
+      let previousTotal =
+        null;
+
+      let previousPosition =
+        0;
 
       const positioned =
         leaderboard.map(
@@ -173,7 +217,8 @@ export default function SeasonPage() {
             let position;
 
             if (
-              previousTotal !== null &&
+              previousTotal !==
+                null &&
               player.total ===
                 previousTotal
             ) {
@@ -192,13 +237,20 @@ export default function SeasonPage() {
 
             return {
               ...player,
-              position
+              position,
             };
           }
         );
 
-      setPlayers(positioned);
+      setPlayers(
+        positioned
+      );
     } catch (error) {
+      console.error(
+        "Season League error:",
+        error
+      );
+
       setMessage(
         error?.message ||
           "Unable to load the Season League."
@@ -207,6 +259,10 @@ export default function SeasonPage() {
       setLoading(false);
     }
   }
+
+  // --------------------------------------------------
+  // LOADING
+  // --------------------------------------------------
 
   if (loading) {
     return (
@@ -228,6 +284,10 @@ export default function SeasonPage() {
     );
   }
 
+  // --------------------------------------------------
+  // ERROR
+  // --------------------------------------------------
+
   if (message) {
     return (
       <main className="wrap">
@@ -248,10 +308,15 @@ export default function SeasonPage() {
     );
   }
 
+  // --------------------------------------------------
+  // PAGE
+  // --------------------------------------------------
+
   return (
     <main className="wrap">
 
-      {/* Header */}
+      {/* HEADER */}
+
       <div className="card">
         <div className="muted">
           SEASON LEAGUE
@@ -262,21 +327,17 @@ export default function SeasonPage() {
         </h2>
 
         <p className="muted">
-          Your Pick 7 points are added
-          together throughout the season.
+          Your Competition Points are
+          added together throughout the
+          season.
         </p>
 
         <p className="muted">
-          Exact score ={" "}
-          <strong>10 points</strong>
-          <br />
-
-          Correct result ={" "}
-          <strong>6 points</strong>
-          <br />
-
-          Wrong result ={" "}
-          <strong>0 points</strong>
+          Each completed Pick 7 round
+          awards Competition Points
+          according to the player's
+          finishing position in that
+          round.
         </p>
 
         <p className="muted">
@@ -286,7 +347,8 @@ export default function SeasonPage() {
         </p>
       </div>
 
-      {/* Leaderboard */}
+      {/* LEADERBOARD */}
+
       <div className="card">
         <h3>
           Season Leaderboard
@@ -300,7 +362,8 @@ export default function SeasonPage() {
         ) : (
           <div
             style={{
-              overflowX: "auto"
+              overflowX:
+                "auto",
             }}
           >
             <table>
@@ -314,14 +377,21 @@ export default function SeasonPage() {
                     Player
                   </th>
 
-                  {rounds.map(round => (
-                    <th
-                      key={round.id}
-                      className="right"
-                    >
-                      R{round.round_number}
-                    </th>
-                  ))}
+                  {rounds.map(
+                    (round) => (
+                      <th
+                        key={
+                          round.id
+                        }
+                        className="right"
+                      >
+                        R
+                        {
+                          round.round_number
+                        }
+                      </th>
+                    )
+                  )}
 
                   <th className="right">
                     Total
@@ -330,81 +400,88 @@ export default function SeasonPage() {
               </thead>
 
               <tbody>
-                {players.map(player => (
-                  <tr
-                    key={
-                      player.player_id
-                    }
-                  >
-                    <td>
-                      <strong>
-                        {player.position}
-                      </strong>
-                    </td>
-
-                    <td>
-                      <strong>
-                        {player.name}
-                      </strong>
-                    </td>
-
-                    {rounds.map(
-                      round => (
-                        <td
-                          key={round.id}
-                          className="right"
-                        >
+                {players.map(
+                  (player) => (
+                    <tr
+                      key={
+                        player.player_id
+                      }
+                    >
+                      <td>
+                        <strong>
                           {
-                            player.rounds[
-                              round.id
-                            ] ?? "–"
+                            player.position
                           }
-                        </td>
-                      )
-                    )}
+                        </strong>
+                      </td>
 
-                    <td className="right">
-                      <strong>
-                        {player.total}
-                      </strong>
-                    </td>
-                  </tr>
-                ))}
+                      <td>
+                        <strong>
+                          {
+                            player.name
+                          }
+                        </strong>
+                      </td>
+
+                      {rounds.map(
+                        (round) => (
+                          <td
+                            key={
+                              round.id
+                            }
+                            className="right"
+                          >
+                            {
+                              player
+                                .rounds[
+                                round.id
+                              ] ??
+                                "–"
+                            }
+                          </td>
+                        )
+                      )}
+
+                      <td className="right">
+                        <strong>
+                          {
+                            player.total
+                          }
+                        </strong>
+                      </td>
+                    </tr>
+                  )
+                )}
               </tbody>
             </table>
           </div>
         )}
       </div>
 
-      {/* How it works */}
+      {/* HOW IT WORKS */}
+
       <div className="card">
         <h3>
           How the Season Works
         </h3>
 
         <p className="muted">
-          Every Pick 7 round contributes
-          your match points to your Season
-          League total.
-          <br /><br />
-
-          Exact score ={" "}
-          <strong>10 points</strong>
+          Every completed Pick 7 round
+          contributes your Competition
+          Points to your Season League
+          total.
           <br />
-
-          Correct result ={" "}
-          <strong>6 points</strong>
           <br />
-
-          Wrong result ={" "}
-          <strong>0 points</strong>
-          <br /><br />
-
+          Competition Points are awarded
+          according to your finishing
+          position in each round.
+          <br />
+          <br />
           If you join the Season League
           after the season has started,
           only rounds from your joining
-          round onwards count towards your
-          Season total.
+          round onwards count towards
+          your Season total.
         </p>
       </div>
 
