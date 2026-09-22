@@ -33,6 +33,7 @@ export default function SeasonPage() {
       if (roundError) throw roundError;
 
       const roundList = roundData || [];
+
       setRounds(roundList);
 
       const {
@@ -62,7 +63,16 @@ export default function SeasonPage() {
         (player) => player.id
       );
 
-      // Season Points use MATCH POINTS
+      /*
+       * IMPORTANT:
+       * Season Points are the player's
+       * MATCH POINTS added together.
+       *
+       * Exact score = 10
+       * Correct result = 6
+       * Wrong result = 0
+       */
+
       const {
         data: scoreData,
         error: scoreError,
@@ -143,6 +153,10 @@ export default function SeasonPage() {
           a.name.localeCompare(b.name)
       );
 
+      /*
+       * Shared positions for tied Season Points.
+       */
+
       let previousTotal = null;
       let previousPosition = 0;
 
@@ -192,16 +206,20 @@ export default function SeasonPage() {
     }
   }
 
+  /*
+   * TOP THREE ROW STYLES
+   */
+
   function getRowStyle(position) {
     if (position === 1) {
-  return {
-    border:
-      "2px solid #f2c94c",
-    background:
-      "linear-gradient(90deg, rgba(242,201,76,0.18), rgba(242,201,76,0.04))",
-    boxSizing: "border-box",
-  };
-}
+      return {
+        border:
+          "2px solid #f2c94c",
+        background:
+          "linear-gradient(90deg, rgba(242,201,76,0.18), rgba(242,201,76,0.04))",
+        boxSizing: "border-box",
+      };
+    }
 
     if (position === 2) {
       return {
@@ -228,8 +246,13 @@ export default function SeasonPage() {
         "1px solid rgba(0,168,255,0.55)",
       background:
         "rgba(4,35,57,0.28)",
+      boxSizing: "border-box",
     };
   }
+
+  /*
+   * POSITION CIRCLE
+   */
 
   function getCircleStyle(position) {
     if (position === 1) {
@@ -263,6 +286,10 @@ export default function SeasonPage() {
     };
   }
 
+  /*
+   * LOADING
+   */
+
   if (loading) {
     return (
       <main className="wrap">
@@ -282,6 +309,10 @@ export default function SeasonPage() {
       </main>
     );
   }
+
+  /*
+   * ERROR
+   */
 
   if (message) {
     return (
@@ -304,20 +335,35 @@ export default function SeasonPage() {
   }
 
   const completedRounds =
-    rounds.filter(
-      (round) =>
-        String(
-          round.status
-        ).toLowerCase() ===
-        "completed"
-    ).slice(0, 5);
+    rounds
+      .filter(
+        (round) =>
+          String(
+            round.status
+          ).toLowerCase() ===
+          "completed"
+      )
+      .slice(0, 5);
+
+  /*
+   * COMPACT COLUMN WIDTHS
+   *
+   * These deliberately add up to fit
+   * inside a normal mobile screen.
+   */
+
+  const columns =
+    "30px minmax(58px,1fr) repeat(5,32px) 43px";
 
   return (
     <main
       className="wrap"
       style={{
-        paddingTop: "6px",
-        paddingBottom: "8px",
+        paddingTop: "5px",
+        paddingBottom: "7px",
+        width: "100%",
+        boxSizing: "border-box",
+        overflowX: "hidden",
       }}
     >
 
@@ -328,13 +374,17 @@ export default function SeasonPage() {
         style={{
           marginBottom: "6px",
           padding:
-            "10px 14px",
+            "9px 12px",
+          boxSizing:
+            "border-box",
+          width: "100%",
         }}
       >
+
         <div
           className="muted"
           style={{
-            fontSize: "11px",
+            fontSize: "10px",
             marginBottom: "2px",
           }}
         >
@@ -344,7 +394,7 @@ export default function SeasonPage() {
         <h2
           style={{
             margin: 0,
-            fontSize: "23px",
+            fontSize: "22px",
             lineHeight: "1.05",
           }}
         >
@@ -356,13 +406,14 @@ export default function SeasonPage() {
           style={{
             margin:
               "3px 0 0 0",
-            fontSize: "12px",
+            fontSize: "11px",
           }}
         >
           Season Points after{" "}
           {completedRounds.length}{" "}
           completed rounds.
         </p>
+
       </div>
 
       {/* LEADERBOARD */}
@@ -370,44 +421,55 @@ export default function SeasonPage() {
       <div
         className="card"
         style={{
-          padding: "6px",
+          padding: "5px",
           marginBottom: "6px",
+          width: "100%",
+          boxSizing:
+            "border-box",
+          overflowX: "hidden",
         }}
       >
 
-        {/* HEADER ROW */}
+        {/* TABLE HEADER */}
 
         <div
           style={{
             display: "grid",
 
-            /*
-              Everything is deliberately sized
-              to fit the phone width.
-            */
-
             gridTemplateColumns:
-              "34px minmax(70px, 1fr) repeat(5, 38px) 48px",
+              columns,
 
             gap: "2px",
 
-            alignItems: "center",
-
-            marginBottom: "3px",
+            alignItems:
+              "center",
 
             width: "100%",
+
+            boxSizing:
+              "border-box",
+
+            marginBottom:
+              "3px",
           }}
         >
 
           <div
             style={{
-              textAlign: "center",
-              fontWeight: "800",
-              fontSize: "10px",
+              textAlign:
+                "center",
+              fontWeight:
+                "800",
+              fontSize:
+                "9px",
               border:
                 "2px solid rgba(0,150,220,0.65)",
-              borderRadius: "6px",
-              padding: "4px 1px",
+              borderRadius:
+                "6px",
+              padding:
+                "4px 0",
+              boxSizing:
+                "border-box",
             }}
           >
             Pos
@@ -415,9 +477,14 @@ export default function SeasonPage() {
 
           <div
             style={{
-              fontWeight: "800",
-              fontSize: "10px",
-              paddingLeft: "3px",
+              fontWeight:
+                "800",
+              fontSize:
+                "9px",
+              paddingLeft:
+                "2px",
+              whiteSpace:
+                "nowrap",
             }}
           >
             Player
@@ -430,14 +497,24 @@ export default function SeasonPage() {
                 style={{
                   border:
                     "2px solid rgba(0,150,220,0.65)",
-                  borderRadius: "6px",
-                  padding: "4px 0",
-                  textAlign: "center",
-                  fontWeight: "800",
-                  fontSize: "10px",
+                  borderRadius:
+                    "6px",
+                  padding:
+                    "4px 0",
+                  textAlign:
+                    "center",
+                  fontWeight:
+                    "800",
+                  fontSize:
+                    "9px",
+                  boxSizing:
+                    "border-box",
                 }}
               >
-                R{round.round_number}
+                R
+                {
+                  round.round_number
+                }
               </div>
             )
           )}
@@ -446,55 +523,75 @@ export default function SeasonPage() {
             style={{
               border:
                 "2px solid rgba(0,150,220,0.8)",
-              borderRadius: "6px",
-              padding: "4px 0",
-              textAlign: "center",
-              fontWeight: "800",
-              fontSize: "10px",
+              borderRadius:
+                "6px",
+              padding:
+                "4px 0",
+              textAlign:
+                "center",
+              fontWeight:
+                "800",
+              fontSize:
+                "8px",
+              boxSizing:
+                "border-box",
+              whiteSpace:
+                "nowrap",
             }}
           >
             Total
           </div>
+
         </div>
 
         {/* PLAYER ROWS */}
 
         <div
           style={{
-            display: "flex",
-            flexDirection: "column",
+            display:
+              "flex",
+            flexDirection:
+              "column",
             gap: "2px",
+            width: "100%",
           }}
         >
 
           {players.map(
             (player) => (
               <div
-                key={player.player_id}
+                key={
+                  player.player_id
+                }
                 style={{
-                  display: "grid",
+                  display:
+                    "grid",
 
                   gridTemplateColumns:
-                    "34px minmax(70px, 1fr) repeat(5, 38px) 48px",
+                    columns,
 
                   gap: "2px",
 
-                  alignItems: "center",
+                  alignItems:
+                    "center",
 
-                  minHeight: "32px",
+                  minHeight:
+                    "31px",
 
-padding: "3px",
+                  padding:
+                    "2px",
 
-borderRadius: "8px",
+                  borderRadius:
+                    "8px",
 
-width: "100%",
-
-boxSizing: "border-box",
-
-overflow: "hidden",
+                  width:
+                    "100%",
 
                   boxSizing:
                     "border-box",
+
+                  overflow:
+                    "hidden",
 
                   ...getRowStyle(
                     player.position
@@ -506,28 +603,38 @@ overflow: "hidden",
 
                 <div
                   style={{
-                    display: "flex",
+                    display:
+                      "flex",
                     justifyContent:
                       "center",
                   }}
                 >
                   <div
                     style={{
-                      width: "23px",
-                      height: "23px",
-                      borderRadius: "50%",
-                      display: "flex",
-                      alignItems: "center",
+                      width:
+                        "22px",
+                      height:
+                        "22px",
+                      borderRadius:
+                        "50%",
+                      display:
+                        "flex",
+                      alignItems:
+                        "center",
                       justifyContent:
                         "center",
-                      fontWeight: "800",
-                      fontSize: "11px",
+                      fontWeight:
+                        "800",
+                      fontSize:
+                        "10px",
                       ...getCircleStyle(
                         player.position
                       ),
                     }}
                   >
-                    {player.position}
+                    {
+                      player.position
+                    }
                   </div>
                 </div>
 
@@ -535,9 +642,12 @@ overflow: "hidden",
 
                 <div
                   style={{
-                    fontWeight: "700",
-                    fontSize: "11px",
-                    paddingLeft: "2px",
+                    fontWeight:
+                      "700",
+                    fontSize:
+                      "10px",
+                    paddingLeft:
+                      "1px",
                     whiteSpace:
                       "nowrap",
                     overflow:
@@ -546,41 +656,51 @@ overflow: "hidden",
                       "ellipsis",
                   }}
                 >
-                  {player.name}
+                  {
+                    player.name
+                  }
                 </div>
 
-                {/* ROUND POINTS */}
+                {/* R1-R5 */}
 
                 {completedRounds.map(
                   (round) => {
                     const value =
-                      player.rounds[
+                      player
+                        .rounds[
                         round.id
                       ];
 
                     return (
                       <div
-                        key={round.id}
+                        key={
+                          round.id
+                        }
                         style={{
                           border:
                             "2px solid rgba(0,150,220,0.65)",
-                          borderRadius: "5px",
+                          borderRadius:
+                            "5px",
                           padding:
                             "5px 0",
                           textAlign:
                             "center",
                           fontSize:
-                            "10px",
+                            "9px",
                           lineHeight:
                             "1",
                           background:
                             "rgba(0,50,85,0.22)",
                           boxSizing:
                             "border-box",
+                          width:
+                            "100%",
                         }}
                       >
-                        {value ??
-                          "–"}
+                        {
+                          value ??
+                          "–"
+                        }
                       </div>
                     );
                   }
@@ -592,13 +712,14 @@ overflow: "hidden",
                   style={{
                     border:
                       "2px solid rgba(0,150,220,0.8)",
-                    borderRadius: "5px",
+                    borderRadius:
+                      "5px",
                     padding:
                       "5px 0",
                     textAlign:
                       "center",
                     fontSize:
-                      "11px",
+                      "10px",
                     lineHeight:
                       "1",
                     fontWeight:
@@ -607,10 +728,13 @@ overflow: "hidden",
                       "rgba(0,80,125,0.25)",
                     boxSizing:
                       "border-box",
-                    width: "100%",
+                    width:
+                      "100%",
                   }}
                 >
-                  {player.total}
+                  {
+                    player.total
+                  }
                 </div>
 
               </div>
@@ -618,6 +742,7 @@ overflow: "hidden",
           )}
 
         </div>
+
       </div>
 
       {/* HOW IT WORKS */}
@@ -626,7 +751,10 @@ overflow: "hidden",
         className="card"
         style={{
           padding:
-            "8px 10px",
+            "7px 9px",
+          width: "100%",
+          boxSizing:
+            "border-box",
         }}
       >
 
@@ -634,7 +762,8 @@ overflow: "hidden",
           style={{
             margin:
               "0 0 3px 0",
-            fontSize: "13px",
+            fontSize:
+              "12px",
           }}
         >
           ℹ️ How the Season Works
@@ -644,8 +773,10 @@ overflow: "hidden",
           className="muted"
           style={{
             margin: 0,
-            fontSize: "10px",
-            lineHeight: "1.3",
+            fontSize:
+              "9px",
+            lineHeight:
+              "1.3",
           }}
         >
           Exact score = 10 points.
