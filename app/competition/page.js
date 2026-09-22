@@ -19,16 +19,34 @@ export default function CompetitionPage() {
     loadCompetition();
   }, []);
 
+  // --------------------------------------------------
+  // GAME / ROUND DISPLAY
+  // --------------------------------------------------
+
+  function getGameNumber(roundNumber) {
+    return Math.floor((Number(roundNumber) - 1) / 5) + 1;
+  }
+
+  function getGameRound(roundNumber) {
+    return ((Number(roundNumber) - 1) % 5) + 1;
+  }
+
+  function getRoundLabel(roundNumber) {
+    return `GAME ${getGameNumber(roundNumber)} • ROUND ${getGameRound(
+      roundNumber
+    )}`;
+  }
+
+  // --------------------------------------------------
+  // COMPETITION
+  // --------------------------------------------------
+
   async function loadCompetition() {
     try {
       setLoading(true);
       setMessage("");
 
       const db = supabase();
-
-      // --------------------------------------------------
-      // COMPETITION
-      // --------------------------------------------------
 
       const { data: competitionData, error: competitionError } =
         await db
@@ -106,8 +124,7 @@ export default function CompetitionPage() {
         const profileMap = {};
 
         (profileData || []).forEach((profile) => {
-          profileMap[profile.id] =
-            profile.display_name || "Player";
+          profileMap[profile.id] = profile.display_name || "Player";
         });
 
         setProfiles(profileMap);
@@ -115,9 +132,7 @@ export default function CompetitionPage() {
     } catch (error) {
       console.error("Competition loading error:", error);
 
-      setMessage(
-        error?.message || "Unable to load the competition."
-      );
+      setMessage(error?.message || "Unable to load the competition.");
     } finally {
       setLoading(false);
     }
@@ -148,19 +163,14 @@ export default function CompetitionPage() {
 
       const fixtureIds = [
         ...new Set(
-          rows
-            .map((row) => row.fixture_id)
-            .filter(Boolean)
+          rows.map((row) => row.fixture_id).filter(Boolean)
         ),
       ];
 
       let fixtures = [];
 
       if (fixtureIds.length > 0) {
-        const {
-          data: fixtureData,
-          error: fixtureError,
-        } = await supabase()
+        const { data: fixtureData, error: fixtureError } = await supabase()
           .from("fixtures")
           .select("id, home_team, away_team")
           .in("id", fixtureIds);
@@ -171,20 +181,13 @@ export default function CompetitionPage() {
       }
 
       const fixtureMap = Object.fromEntries(
-        fixtures.map((fixture) => [
-          fixture.id,
-          fixture,
-        ])
+        fixtures.map((fixture) => [fixture.id, fixture])
       );
 
       const enrichedRows = rows.map((row) => ({
         ...row,
-
-        home_team:
-          fixtureMap[row.fixture_id]?.home_team || "",
-
-        away_team:
-          fixtureMap[row.fixture_id]?.away_team || "",
+        home_team: fixtureMap[row.fixture_id]?.home_team || "",
+        away_team: fixtureMap[row.fixture_id]?.away_team || "",
       }));
 
       setRoundDetails((current) => ({
@@ -260,16 +263,12 @@ export default function CompetitionPage() {
 
       const points = Number(row.points || 0);
 
-      players[row.player_id].games[
-        row.fixture_number
-      ] = {
+      players[row.player_id].games[row.fixture_number] = {
         points,
 
-        prediction:
-          `${row.predicted_home} - ${row.predicted_away}`,
+        prediction: `${row.predicted_home} - ${row.predicted_away}`,
 
-        actual:
-          `${row.actual_home} - ${row.actual_away}`,
+        actual: `${row.actual_home} - ${row.actual_away}`,
 
         home_team: row.home_team,
 
@@ -283,8 +282,7 @@ export default function CompetitionPage() {
 
     Object.values(players).forEach((player) => {
       const score = scores.find(
-        (item) =>
-          item.player_id === player.player_id
+        (item) => item.player_id === player.player_id
       );
 
       if (score) {
@@ -332,8 +330,7 @@ export default function CompetitionPage() {
     });
 
     return Object.values(fixtures).sort(
-      (a, b) =>
-        a.fixture_number - b.fixture_number
+      (a, b) => a.fixture_number - b.fixture_number
     );
   }
 
@@ -365,9 +362,8 @@ export default function CompetitionPage() {
 
       playerMap[score.player_id].total += points;
 
-      playerMap[score.player_id].rounds[
-        score.round_id
-      ] = points;
+      playerMap[score.player_id].rounds[score.round_id] =
+        points;
     });
 
     const players = Object.values(playerMap).sort(
@@ -399,6 +395,276 @@ export default function CompetitionPage() {
         position,
       };
     });
+  }
+
+  // --------------------------------------------------
+  // POSITION STYLE
+  // --------------------------------------------------
+
+  function getPositionStyle(position) {
+    if (position === 1) {
+      return {
+        border: "2px solid #f5c842",
+        background:
+          "linear-gradient(90deg, rgba(245,200,66,0.16), rgba(255,255,255,0.04))",
+        badgeBackground: "#f5c842",
+        badgeColor: "#111",
+      };
+    }
+
+    if (position === 2) {
+      return {
+        border: "2px solid #c9d2dc",
+        background:
+          "linear-gradient(90deg, rgba(201,210,220,0.14), rgba(255,255,255,0.04))",
+        badgeBackground: "#e6ebf0",
+        badgeColor: "#222",
+      };
+    }
+
+    if (position === 3) {
+      return {
+        border: "2px solid #e59443",
+        background:
+          "linear-gradient(90deg, rgba(229,148,67,0.14), rgba(255,255,255,0.04))",
+        badgeBackground: "#e59443",
+        badgeColor: "#111",
+      };
+    }
+
+    return {
+      border: "2px solid rgba(0,140,210,0.75)",
+      background: "rgba(255,255,255,0.025)",
+      badgeBackground: "rgba(0,90,140,0.35)",
+      badgeColor: "#fff",
+    };
+  }
+
+  // --------------------------------------------------
+  // ROUND SCORE BOX
+  // --------------------------------------------------
+
+  function RoundScoreBox({ round, player }) {
+    const value = player.rounds[round.id];
+
+    return (
+      <div
+        style={{
+          minWidth: 0,
+          textAlign: "center",
+          padding: "7px 3px",
+          borderRadius: "10px",
+          border: "2px solid rgba(0,140,210,0.8)",
+          background: "rgba(0,70,110,0.18)",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "10px",
+            fontWeight: "700",
+            opacity: 0.75,
+            marginBottom: "3px",
+          }}
+        >
+          R{getGameRound(round.round_number)}
+        </div>
+
+        <strong
+          style={{
+            fontSize: "15px",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {value ?? "–"}
+        </strong>
+      </div>
+    );
+  }
+
+  // --------------------------------------------------
+  // LEADERBOARD PLAYER CARD
+  // --------------------------------------------------
+
+  function LeaderboardPlayer({ player }) {
+    const style = getPositionStyle(player.position);
+
+    const game1Rounds = rounds.filter(
+      (round) => getGameNumber(round.round_number) === 1
+    );
+
+    const game2Rounds = rounds.filter(
+      (round) => getGameNumber(round.round_number) === 2
+    );
+
+    return (
+      <div
+        style={{
+          borderRadius: "14px",
+          border: style.border,
+          background: style.background,
+          padding: "10px",
+          boxSizing: "border-box",
+        }}
+      >
+        {/* PLAYER HEADER */}
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            marginBottom: "10px",
+          }}
+        >
+          {/* POSITION */}
+
+          <div
+            style={{
+              width: "42px",
+              height: "42px",
+              minWidth: "42px",
+              borderRadius: "50%",
+              background: style.badgeBackground,
+              color: style.badgeColor,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "17px",
+              fontWeight: "800",
+            }}
+          >
+            {player.position}
+          </div>
+
+          {/* NAME */}
+
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+            }}
+          >
+            <strong
+              style={{
+                fontSize: "17px",
+                display: "block",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {player.name}
+            </strong>
+          </div>
+
+          {/* TOTAL */}
+
+          <div
+            style={{
+              textAlign: "right",
+              minWidth: "55px",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "10px",
+                opacity: 0.7,
+                fontWeight: "700",
+              }}
+            >
+              TOTAL
+            </div>
+
+            <strong
+              style={{
+                fontSize: "19px",
+              }}
+            >
+              {player.total}
+            </strong>
+          </div>
+        </div>
+
+        {/* GAME 1 */}
+
+        {game1Rounds.length > 0 && (
+          <div
+            style={{
+              marginBottom:
+                game2Rounds.length > 0 ? "10px" : "0",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "10px",
+                fontWeight: "800",
+                letterSpacing: "0.5px",
+                marginBottom: "5px",
+                opacity: 0.7,
+              }}
+            >
+              GAME 1
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: `repeat(${Math.min(
+                  game1Rounds.length,
+                  5
+                )}, minmax(0, 1fr))`,
+                gap: "5px",
+              }}
+            >
+              {game1Rounds.map((round) => (
+                <RoundScoreBox
+                  key={round.id}
+                  round={round}
+                  player={player}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* GAME 2 */}
+
+        {game2Rounds.length > 0 && (
+          <div>
+            <div
+              style={{
+                fontSize: "10px",
+                fontWeight: "800",
+                letterSpacing: "0.5px",
+                marginBottom: "5px",
+                opacity: 0.7,
+              }}
+            >
+              GAME 2
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: `repeat(${Math.min(
+                  game2Rounds.length,
+                  5
+                )}, minmax(0, 1fr))`,
+                gap: "5px",
+              }}
+            >
+              {game2Rounds.map((round) => (
+                <RoundScoreBox
+                  key={round.id}
+                  round={round}
+                  player={player}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   }
 
   // --------------------------------------------------
@@ -466,6 +732,8 @@ export default function CompetitionPage() {
       </main>
     );
   }
+
+  const leaderboard = buildLeaderboard();
 
   // --------------------------------------------------
   // MAIN PAGE
@@ -562,11 +830,16 @@ export default function CompetitionPage() {
                       ? "pointer"
                       : "default",
                     fontSize: "16px",
+                    textAlign: "left",
                   }}
                 >
-                  <strong>
-                    Round {round.round_number}
-                  </strong>
+                  <div>
+                    <strong>
+                      {getRoundLabel(
+                        round.round_number
+                      )}
+                    </strong>
+                  </div>
 
                   <span
                     style={{
@@ -611,8 +884,10 @@ export default function CompetitionPage() {
                         }}
                       >
                         <p className="muted">
-                          Loading Round{" "}
-                          {round.round_number}{" "}
+                          Loading{" "}
+                          {getRoundLabel(
+                            round.round_number
+                          )}{" "}
                           results...
                         </p>
                       </div>
@@ -621,17 +896,17 @@ export default function CompetitionPage() {
                     {loadingRound !==
                       round.id &&
                       details.length === 0 && (
-                        <div
-                          style={{
-                            padding: "20px 0",
-                          }}
-                        >
-                          <p className="muted">
-                            No completed results
-                            are available yet.
-                          </p>
-                        </div>
-                      )}
+                      <div
+                        style={{
+                          padding: "20px 0",
+                        }}
+                      >
+                        <p className="muted">
+                          No completed results
+                          are available yet.
+                        </p>
+                      </div>
+                    )}
 
                     {loadingRound !==
                       round.id &&
@@ -914,7 +1189,9 @@ export default function CompetitionPage() {
                                       </div>
 
                                       <strong>
-                                        {player.position}
+                                        {
+                                          player.position
+                                        }
                                       </strong>
                                     </div>
 
@@ -1098,83 +1375,46 @@ export default function CompetitionPage() {
       {/* COMPETITION LEADERBOARD */}
 
       <div className="card">
-        <h3>Competition Leaderboard</h3>
+        <h3
+          style={{
+            marginBottom: "4px",
+          }}
+        >
+          🏆 Competition Leaderboard
+        </h3>
 
-        <p className="muted">
+        <p
+          className="muted"
+          style={{
+            marginTop: "0",
+            marginBottom: "16px",
+          }}
+        >
           Competition Points after completed
           rounds.
         </p>
 
+        {/* LEADERBOARD */}
+
         <div
           style={{
-            overflowX: "auto",
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
           }}
         >
-          <table>
-            <thead>
-              <tr>
-                <th>Pos</th>
-
-                <th>Player</th>
-
-                {rounds.map((round) => (
-                  <th
-                    key={round.id}
-                    className="right"
-                  >
-                    R{round.round_number}
-                  </th>
-                ))}
-
-                <th className="right">
-                  Total
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {buildLeaderboard().map(
-                (player) => (
-                  <tr
-                    key={
-                      player.player_id
-                    }
-                  >
-                    <td>
-                      <strong>
-                        {player.position}
-                      </strong>
-                    </td>
-
-                    <td>
-                      <strong>
-                        {player.name}
-                      </strong>
-                    </td>
-
-                    {rounds.map(
-                      (round) => (
-                        <td
-                          key={round.id}
-                          className="right"
-                        >
-                          {player.rounds[
-                            round.id
-                          ] ?? "–"}
-                        </td>
-                      )
-                    )}
-
-                    <td className="right">
-                      <strong>
-                        {player.total}
-                      </strong>
-                    </td>
-                  </tr>
-                )
-              )}
-            </tbody>
-          </table>
+          {leaderboard.length === 0 ? (
+            <p className="muted">
+              No completed rounds yet.
+            </p>
+          ) : (
+            leaderboard.map((player) => (
+              <LeaderboardPlayer
+                key={player.player_id}
+                player={player}
+              />
+            ))
+          )}
         </div>
       </div>
     </main>
