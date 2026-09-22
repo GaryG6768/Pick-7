@@ -6,9 +6,13 @@ import { supabase } from "../../lib/supabase";
 export default function CompetitionPage() {
   const [competition, setCompetition] = useState(null);
   const [rounds, setRounds] = useState([]);
-  const [players, setPlayers] = useState([]);
+  const [roundScores, setRoundScores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+
+  const [openRound, setOpenRound] = useState(null);
+  const [roundDetails, setRoundDetails] = useState({});
+  const [loadingRound, setLoadingRound] = useState(null);
 
   useEffect(() => {
     loadCompetition();
@@ -21,7 +25,12 @@ export default function CompetitionPage() {
 
       const db = supabase();
 
-      // Get the current competition
+      /*
+       --------------------------------------------------
+       GET CURRENT COMPETITION
+       --------------------------------------------------
+      */
+
       const {
         data: competitionData,
         error: competitionError
@@ -43,13 +52,18 @@ export default function CompetitionPage() {
       if (!competitionData) {
         setCompetition(null);
         setRounds([]);
-        setPlayers([]);
+        setRoundScores([]);
         return;
       }
 
       setCompetition(competitionData);
 
-      // Get the rounds belonging to this competition
+      /*
+       --------------------------------------------------
+       GET ROUNDS
+       --------------------------------------------------
+      */
+
       const {
         data: roundData,
         error: roundError
@@ -75,15 +89,20 @@ export default function CompetitionPage() {
       setRounds(roundList);
 
       if (roundList.length === 0) {
-        setPlayers([]);
+        setRoundScores([]);
         return;
       }
+
+      /*
+       --------------------------------------------------
+       GET ROUND SCORES
+       --------------------------------------------------
+      */
 
       const roundIds = roundList.map(
         round => round.id
       );
 
-      // Get all competition scores
       const {
         data: scoreData,
         error: scoreError
@@ -98,79 +117,15 @@ export default function CompetitionPage() {
         throw scoreError;
       }
 
-      const scores = scoreData || [];
-
-      if (scores.length === 0) {
-        setPlayers([]);
-        return;
-      }
-
-      // Get player names
-      const playerIds = [
-        ...new Set(
-          scores.map(score => score.player_id)
-        )
-      ];
-
-      const {
-        data: profileData,
-        error: profileError
-      } = await db
-        .from("profiles")
-        .select(
-          "id, display_name"
-        )
-        .in("id", playerIds);
-
-      if (profileError) {
-        throw profileError;
-      }
-
-      const names = Object.fromEntries(
-        (profileData || []).map(profile => [
-          profile.id,
-          profile.display_name || "Player"
-        ])
+      setRoundScores(
+        scoreData || []
       );
-
-      // Build leaderboard
-      const playerMap = {};
-
-      scores.forEach(score => {
-        if (!playerMap[score.player_id]) {
-          playerMap[score.player_id] = {
-            player_id: score.player_id,
-            name:
-              names[score.player_id] ||
-              "Player",
-            total: 0,
-            rounds: {}
-          };
-        }
-
-        const points = Number(
-          score.competition_points || 0
-        );
-
-        playerMap[
-          score.player_id
-        ].total += points;
-
-        playerMap[
-          score.player_id
-        ].rounds[score.round_id] = points;
-      });
-
-      const leaderboard = Object.values(
-        playerMap
-      ).sort(
-        (a, b) =>
-          b.total - a.total ||
-          a.name.localeCompare(b.name)
-      );
-
-      setPlayers(leaderboard);
     } catch (error) {
+      console.error(
+        "Competition loading error:",
+        error
+      );
+
       setMessage(
         error?.message ||
           "Unable to load the competition."
@@ -180,6 +135,90 @@ export default function CompetitionPage() {
     }
   }
 
+  /*
+   --------------------------------------------------
+   LOAD A COMPLETED ROUND
+   --------------------------------------------------
+  */
+
+  async function loadRoundDetails(
+    roundId
+  ) {
+    if (roundDetails[roundId]) {
+      return;
+    }
+
+    setLoadingRound(roundId);
+
+    try {
+      const {
+        data,
+        error
+      } = await supabase().rpc(
+        "get_completed_pick7_round_details",
+        {
+          p_round_id: roundId
+        }
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      setRoundDetails(
+        current => ({
+          ...current,
+          [roundId]: data || []
+        })
+      );
+    } catch (error) {
+      console.error(
+        "Round details error:",
+        error
+      );
+
+      setMessage(
+        "Unable to load round results: " +
+          (error?.message ||
+            "Unknown error")
+      );
+    } finally {
+      setLoadingRound(null);
+    }
+  }
+
+  /*
+   --------------------------------------------------
+   OPEN / CLOSE ROUND
+   --------------------------------------------------
+  */
+
+  async function toggleRound(round) {
+    if (
+      String(round.status).toLowerCase() !==
+      "completed"
+    ) {
+      return;
+    }
+
+    if (openRound === round.id) {
+      setOpenRound(null);
+      return;
+    }
+
+    setOpenRound(round.id);
+
+    await loadRoundDetails(
+      round.id
+    );
+  }
+
+  /*
+   --------------------------------------------------
+   ROUND STATUS
+   --------------------------------------------------
+  */
+
   function roundStatus(status) {
     if (!status) {
       return "NOT STARTED";
@@ -187,6 +226,179 @@ export default function CompetitionPage() {
 
     return String(status).toUpperCase();
   }
+
+  /*
+   --------------------------------------------------
+   GET ROUND SCORES
+   --------------------------------------------------
+  */
+
+  function getScoresForRound(
+    roundId
+  ) {
+    return roundScores.filter(
+      score =>
+        score.round_id ===
+        roundId
+    );
+  }
+
+  /*
+   --------------------------------------------------
+   BUILD PLAYER RESULTS
+   --------------------------------------------------
+  */
+
+  function buildPlayerResults(
+    details,
+    roundId
+  ) {
+    const players = {};
+
+    details.forEach(row => {
+      if (!players[row.player_id]) {
+        players[row.player_id] = {
+          player_id:
+            row.player_id,
+
+          name:
+            row.display_name ||
+            "Player",
+
+          games: {},
+
+          total: 0
+        };
+      }
+
+      players[
+        row.player_id
+      ].games[
+        row.fixture_number
+      ] = {
+        points:
+          Number(
+            row.points || 0
+          ),
+
+        prediction:
+          `${row.predicted_home} - ${row.predicted_away}`,
+
+        actual:
+          `${row.actual_home} - ${row.actual_away}`,
+
+        home:
+          row.actual_home,
+
+        away:
+          row.actual_away
+      };
+
+      players[
+        row.player_id
+      ].total += Number(
+        row.points || 0
+      );
+    });
+
+    /*
+     Add competition position
+     and competition points.
+    */
+
+    const scores =
+      getScoresForRound(
+        roundId
+      );
+
+    Object.values(
+      players
+    ).forEach(player => {
+      const score =
+        scores.find(
+          item =>
+            item.player_id ===
+            player.player_id
+        );
+
+      if (score) {
+        player.competitionPoints =
+          Number(
+            score.competition_points ||
+              0
+          );
+
+        player.position =
+          score.position;
+      } else {
+        player.competitionPoints =
+          0;
+
+        player.position =
+          "-";
+      }
+    });
+
+    return Object.values(
+      players
+    ).sort(
+      (a, b) =>
+        b.total - a.total ||
+        a.name.localeCompare(
+          b.name
+        )
+    );
+  }
+
+  /*
+   --------------------------------------------------
+   GET FIXTURE RESULTS
+   --------------------------------------------------
+  */
+
+  function getFixtures(
+    details
+  ) {
+    const fixtures = {};
+
+    details.forEach(row => {
+      if (
+        !fixtures[
+          row.fixture_number
+        ]
+      ) {
+        fixtures[
+          row.fixture_number
+        ] = {
+          fixture_number:
+            row.fixture_number,
+
+          fixture_id:
+            row.fixture_id,
+
+          actual_home:
+            row.actual_home,
+
+          actual_away:
+            row.actual_away
+        };
+      }
+    });
+
+    return Object.values(
+      fixtures
+    ).sort(
+      (a, b) =>
+        a.fixture_number -
+        b.fixture_number
+    );
+  }
+
+  /*
+   --------------------------------------------------
+   LOADING SCREEN
+   --------------------------------------------------
+  */
 
   if (loading) {
     return (
@@ -196,7 +408,9 @@ export default function CompetitionPage() {
             5 ROUND COMPETITION
           </div>
 
-          <h2>5 Rounds</h2>
+          <h2>
+            5 Rounds
+          </h2>
 
           <p className="muted">
             Loading competition...
@@ -206,6 +420,12 @@ export default function CompetitionPage() {
     );
   }
 
+  /*
+   --------------------------------------------------
+   ERROR
+   --------------------------------------------------
+  */
+
   if (message) {
     return (
       <main className="wrap">
@@ -214,7 +434,9 @@ export default function CompetitionPage() {
             5 ROUND COMPETITION
           </div>
 
-          <h2>5 Rounds</h2>
+          <h2>
+            5 Rounds
+          </h2>
 
           <div className="notice">
             {message}
@@ -224,6 +446,12 @@ export default function CompetitionPage() {
     );
   }
 
+  /*
+   --------------------------------------------------
+   NO COMPETITION
+   --------------------------------------------------
+  */
+
   if (!competition) {
     return (
       <main className="wrap">
@@ -232,20 +460,30 @@ export default function CompetitionPage() {
             5 ROUND COMPETITION
           </div>
 
-          <h2>5 Rounds</h2>
+          <h2>
+            5 Rounds
+          </h2>
 
           <p className="muted">
-            No competition has been created yet.
+            No competition has been
+            created yet.
           </p>
         </div>
       </main>
     );
   }
 
+  /*
+   --------------------------------------------------
+   MAIN PAGE
+   --------------------------------------------------
+  */
+
   return (
     <main className="wrap">
 
       {/* Competition header */}
+
       <div className="card">
         <div className="muted">
           5 ROUND COMPETITION
@@ -258,15 +496,18 @@ export default function CompetitionPage() {
 
         <p className="muted">
           Five rounds of Pick 7.
-          <br /><br />
+          <br />
+          <br />
 
-          Each round has its own finishing
-          position and competition points.
+          Each completed round shows
+          everyone's results.
         </p>
       </div>
 
-      {/* Round status */}
+      {/* Competition rounds */}
+
       <div className="card">
+
         <h3>
           Competition Rounds
         </h3>
@@ -274,168 +515,769 @@ export default function CompetitionPage() {
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
+            flexDirection:
+              "column",
             gap: "10px"
           }}
         >
-          {rounds.map(round => (
-            <div
-              key={round.id}
-              style={{
-                display: "flex",
-                justifyContent:
-                  "space-between",
-                alignItems: "center",
-                padding: "14px",
-                borderRadius: "12px",
-                background:
-                  "rgba(255,255,255,0.05)",
-                border:
-                  "1px solid rgba(255,255,255,0.08)"
-              }}
-            >
-              <strong>
-                Round {round.round_number}
-              </strong>
 
-              <span className="muted">
-                {roundStatus(
-                  round.status
+          {rounds.map(round => {
+
+            const completed =
+              String(
+                round.status
+              ).toLowerCase() ===
+              "completed";
+
+            const isOpen =
+              openRound ===
+              round.id;
+
+            const details =
+              roundDetails[
+                round.id
+              ] || [];
+
+            const playerResults =
+              buildPlayerResults(
+                details,
+                round.id
+              );
+
+            const fixtures =
+              getFixtures(
+                details
+              );
+
+            return (
+              <div
+                key={round.id}
+                style={{
+                  borderRadius:
+                    "12px",
+                  background:
+                    "rgba(255,255,255,0.05)",
+                  border:
+                    "1px solid rgba(255,255,255,0.08)",
+                  overflow:
+                    "hidden"
+                }}
+              >
+
+                {/* Round button */}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    toggleRound(
+                      round
+                    )
+                  }
+                  disabled={
+                    !completed
+                  }
+                  style={{
+                    width: "100%",
+                    display:
+                      "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems:
+                      "center",
+                    padding:
+                      "16px",
+                    border:
+                      "none",
+                    background:
+                      "transparent",
+                    color:
+                      "inherit",
+                    cursor:
+                      completed
+                        ? "pointer"
+                        : "default",
+                    fontSize:
+                      "16px"
+                  }}
+                >
+
+                  <strong>
+                    Round{" "}
+                    {
+                      round.round_number
+                    }
+                  </strong>
+
+                  <span
+                    style={{
+                      display:
+                        "flex",
+                      alignItems:
+                        "center",
+                      gap:
+                        "10px"
+                    }}
+                  >
+                    <span className="muted">
+                      {
+                        roundStatus(
+                          round.status
+                        )
+                      }
+                    </span>
+
+                    {completed && (
+                      <span
+                        style={{
+                          fontSize:
+                            "18px"
+                        }}
+                      >
+                        {isOpen
+                          ? "▲"
+                          : "▼"}
+                      </span>
+                    )}
+                  </span>
+
+                </button>
+
+                {/* Expanded round */}
+
+                {isOpen && (
+                  <div
+                    style={{
+                      padding:
+                        "0 14px 16px 14px",
+                      borderTop:
+                        "1px solid rgba(255,255,255,0.08)"
+                    }}
+                  >
+
+                    {loadingRound ===
+                      round.id && (
+                      <div
+                        style={{
+                          padding:
+                            "18px 0",
+                          textAlign:
+                            "center"
+                        }}
+                      >
+                        <p className="muted">
+                          Loading Round{" "}
+                          {
+                            round.round_number
+                          }{" "}
+                          results...
+                        </p>
+                      </div>
+                    )}
+
+                    {loadingRound !==
+                      round.id &&
+                      details.length ===
+                        0 && (
+                        <div
+                          style={{
+                            padding:
+                              "18px 0"
+                          }}
+                        >
+                          <p className="muted">
+                            No completed results
+                            are available
+                            yet.
+                          </p>
+                        </div>
+                      )}
+
+                    {loadingRound !==
+                      round.id &&
+                      details.length >
+                        0 && (
+                        <>
+
+                          {/* Actual results */}
+
+                          <div
+                            style={{
+                              marginTop:
+                                "14px",
+                              marginBottom:
+                                "18px"
+                            }}
+                          >
+
+                            <div
+                              className="muted"
+                              style={{
+                                marginBottom:
+                                  "10px"
+                              }}
+                            >
+                              ACTUAL RESULTS
+                            </div>
+
+                            <div
+                              style={{
+                                display:
+                                  "grid",
+                                gridTemplateColumns:
+                                  "repeat(2, minmax(0, 1fr))",
+                                gap:
+                                  "8px"
+                              }}
+                            >
+
+                              {fixtures.map(
+                                fixture => (
+                                  <div
+                                    key={
+                                      fixture.fixture_number
+                                    }
+                                    style={{
+                                      padding:
+                                        "10px",
+                                      borderRadius:
+                                        "10px",
+                                      background:
+                                        "rgba(255,255,255,0.04)",
+                                      textAlign:
+                                        "center"
+                                    }}
+                                  >
+
+                                    <div
+                                      className="muted"
+                                      style={{
+                                        fontSize:
+                                          "12px"
+                                      }}
+                                    >
+                                      GAME{" "}
+                                      {
+                                        fixture.fixture_number
+                                      }
+                                    </div>
+
+                                    <strong
+                                      style={{
+                                        fontSize:
+                                          "18px"
+                                      }}
+                                    >
+                                      {
+                                        fixture.actual_home
+                                      }
+                                      {" - "}
+                                      {
+                                        fixture.actual_away
+                                      }
+                                    </strong>
+
+                                  </div>
+                                )
+                              )}
+
+                            </div>
+                          </div>
+
+                          {/* Player results */}
+
+                          <div
+                            className="muted"
+                            style={{
+                              marginBottom:
+                                "10px"
+                            }}
+                          >
+                            PLAYER RESULTS
+                          </div>
+
+                          <div
+                            style={{
+                              overflowX:
+                                "auto",
+                              WebkitOverflowScrolling:
+                                "touch"
+                            }}
+                          >
+
+                            <table
+                              style={{
+                                minWidth:
+                                  "650px",
+                                width:
+                                  "100%"
+                              }}
+                            >
+
+                              <thead>
+                                <tr>
+
+                                  <th>
+                                    Player
+                                  </th>
+
+                                  {[
+                                    1,
+                                    2,
+                                    3,
+                                    4,
+                                    5,
+                                    6,
+                                    7
+                                  ].map(
+                                    number => (
+                                      <th
+                                        key={
+                                          number
+                                        }
+                                        className="right"
+                                      >
+                                        G
+                                        {
+                                          number
+                                        }
+                                      </th>
+                                    )
+                                  )}
+
+                                  <th className="right">
+                                    Total
+                                  </th>
+
+                                </tr>
+                              </thead>
+
+                              <tbody>
+
+                                {playerResults.map(
+                                  player => (
+                                    <tr
+                                      key={
+                                        player.player_id
+                                      }
+                                    >
+
+                                      <td>
+                                        <strong>
+                                          {
+                                            player.name
+                                          }
+                                        </strong>
+                                      </td>
+
+                                      {[
+                                        1,
+                                        2,
+                                        3,
+                                        4,
+                                        5,
+                                        6,
+                                        7
+                                      ].map(
+                                        number => {
+
+                                          const game =
+                                            player.games[
+                                              number
+                                            ];
+
+                                          return (
+                                            <td
+                                              key={
+                                                number
+                                              }
+                                              className="right"
+                                            >
+                                              {game
+                                                ? game.points
+                                                : "–"}
+                                            </td>
+                                          );
+                                        }
+                                      )}
+
+                                      <td className="right">
+                                        <strong>
+                                          {
+                                            player.total
+                                          }
+                                        </strong>
+                                      </td>
+
+                                    </tr>
+                                  )
+                                )}
+
+                              </tbody>
+
+                            </table>
+
+                          </div>
+
+                          {/* Detailed predictions */}
+
+                          <div
+                            style={{
+                              marginTop:
+                                "20px"
+                            }}
+                          >
+
+                            <div
+                              className="muted"
+                              style={{
+                                marginBottom:
+                                  "10px"
+                              }}
+                            >
+                              PREDICTIONS
+                            </div>
+
+                            {playerResults.map(
+                              player => (
+                                <details
+                                  key={
+                                    player.player_id
+                                  }
+                                  style={{
+                                    marginBottom:
+                                      "8px",
+                                    border:
+                                      "1px solid rgba(255,255,255,0.08)",
+                                    borderRadius:
+                                      "10px",
+                                    overflow:
+                                      "hidden"
+                                  }}
+                                >
+
+                                  <summary
+                                    style={{
+                                      padding:
+                                        "13px",
+                                      cursor:
+                                        "pointer",
+                                      fontWeight:
+                                        "700",
+                                      background:
+                                        "rgba(255,255,255,0.04)"
+                                    }}
+                                  >
+                                    {
+                                      player.name
+                                    }
+
+                                    {" — "}
+
+                                    {
+                                      player.total
+                                    }{" "}
+                                    MATCH POINTS
+                                  </summary>
+
+                                  <div
+                                    style={{
+                                      padding:
+                                        "10px"
+                                    }}
+                                  >
+
+                                    {[
+                                      1,
+                                      2,
+                                      3,
+                                      4,
+                                      5,
+                                      6,
+                                      7
+                                    ].map(
+                                      number => {
+
+                                        const game =
+                                          player.games[
+                                            number
+                                          ];
+
+                                        if (
+                                          !game
+                                        ) {
+                                          return null;
+                                        }
+
+                                        return (
+                                          <div
+                                            key={
+                                              number
+                                            }
+                                            style={{
+                                              padding:
+                                                "10px 4px",
+                                              borderBottom:
+                                                "1px solid rgba(255,255,255,0.06)"
+                                            }}
+                                          >
+
+                                            <div
+                                              className="muted"
+                                            >
+                                              GAME{" "}
+                                              {
+                                                number
+                                              }
+                                            </div>
+
+                                            <div
+                                              style={{
+                                                display:
+                                                  "flex",
+                                                justifyContent:
+                                                  "space-between",
+                                                alignItems:
+                                                  "center",
+                                                gap:
+                                                  "10px",
+                                                marginTop:
+                                                  "4px"
+                                              }}
+                                            >
+
+                                              <span>
+                                                Pick:{" "}
+                                                <strong>
+                                                  {
+                                                    game.prediction
+                                                  }
+                                                </strong>
+                                              </span>
+
+                                              <strong>
+                                                {
+                                                  game.points
+                                                }{" "}
+                                                POINTS
+                                              </strong>
+
+                                            </div>
+
+                                            <div
+                                              className="muted"
+                                              style={{
+                                                marginTop:
+                                                  "4px"
+                                              }}
+                                            >
+                                              Actual:{" "}
+                                              {
+                                                game.actual
+                                              }
+                                            </div>
+
+                                          </div>
+                                        );
+                                      }
+                                    )}
+
+                                  </div>
+
+                                </details>
+                              )
+                            )}
+
+                          </div>
+
+                        </>
+                      )}
+
+                  </div>
                 )}
-              </span>
-            </div>
-          ))}
 
-          {rounds.length === 0 && (
+              </div>
+            );
+          })}
+
+          {rounds.length ===
+            0 && (
             <p className="muted">
-              No rounds have been created yet.
+              No rounds have been
+              created yet.
             </p>
           )}
+
         </div>
       </div>
 
       {/* Leaderboard */}
+
       <div className="card">
+
         <h3>
           Competition Leaderboard
         </h3>
 
-        {players.length === 0 ? (
-          <p className="muted">
-            No competition points have
-            been recorded yet.
-          </p>
-        ) : (
-          <div
-            style={{
-              overflowX: "auto"
-            }}
-          >
-            <table>
-              <thead>
-                <tr>
-                  <th>Pos</th>
+        <p className="muted">
+          Overall competition points
+          after completed rounds.
+        </p>
 
-                  <th>Player</th>
+        <div
+          style={{
+            overflowX:
+              "auto"
+          }}
+        >
 
-                  {rounds.map(round => (
+          <table>
+
+            <thead>
+              <tr>
+                <th>
+                  Pos
+                </th>
+
+                <th>
+                  Player
+                </th>
+
+                {rounds.map(
+                  round => (
                     <th
-                      key={round.id}
+                      key={
+                        round.id
+                      }
                       className="right"
                     >
-                      R{round.round_number}
-                    </th>
-                  ))}
-
-                  <th className="right">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {players.map(
-                  (player, index) => (
-                    <tr
-                      key={
-                        player.player_id
+                      R
+                      {
+                        round.round_number
                       }
-                    >
-                      <td>
-                        {index + 1}
-                      </td>
-
-                      <td>
-                        <strong>
-                          {player.name}
-                        </strong>
-                      </td>
-
-                      {rounds.map(
-                        round => (
-                          <td
-                            key={
-                              round.id
-                            }
-                            className="right"
-                          >
-                            {player.rounds[
-                              round.id
-                            ] ?? "–"}
-                          </td>
-                        )
-                      )}
-
-                      <td className="right">
-                        <strong>
-                          {player.total}
-                        </strong>
-                      </td>
-                    </tr>
+                    </th>
                   )
                 )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
 
-      {/* Scoring explanation */}
-      <div className="card">
-        <h3>
-          How Competition Points Work
-        </h3>
+                <th className="right">
+                  Total
+                </th>
+              </tr>
+            </thead>
 
-        <p className="muted">
-          Your Pick 7 match points determine
-          your finishing position in each
-          round.
-          <br /><br />
+            <tbody>
 
-          Competition points are then awarded
-          according to the number of players
-          who entered that round.
-          <br /><br />
+              {(() => {
 
-          For example, with 20 players:
-          <br /><br />
+                const playerMap =
+                  {};
 
-          1st = 20 points
-          <br />
-          2nd = 19 points
-          <br />
-          3rd = 18 points
-          <br />
-          4th = 17 points
-          <br />
-          ...
-          <br />
-          20th = 1 point.
-          <br /><br />
+                roundScores.forEach(
+                  score => {
 
-          Tied players share the points for
-          the positions they occupy.
-        </p>
+                    if (
+                      !playerMap[
+                        score.player_id
+                      ]
+                    ) {
+                      playerMap[
+                        score.player_id
+                      ] = {
+                        player_id:
+                          score.player_id,
+                        total: 0,
+                        rounds: {}
+                      };
+                    }
+
+                    const points =
+                      Number(
+                        score.competition_points ||
+                          0
+                      );
+
+                    playerMap[
+                      score.player_id
+                    ].total +=
+                      points;
+
+                    playerMap[
+                      score.player_id
+                    ].rounds[
+                      score.round_id
+                    ] = points;
+                  }
+                );
+
+                return Object.values(
+                  playerMap
+                )
+                  .sort(
+                    (a, b) =>
+                      b.total -
+                      a.total
+                  )
+                  .map(
+                    (
+                      player,
+                      index
+                    ) => (
+                      <tr
+                        key={
+                          player.player_id
+                        }
+                      >
+
+                        <td>
+                          {
+                            index +
+                            1
+                          }
+                        </td>
+
+                        <td>
+                          <strong>
+                            Player
+                          </strong>
+                        </td>
+
+                        {rounds.map(
+                          round => (
+                            <td
+                              key={
+                                round.id
+                              }
+                              className="right"
+                            >
+                              {
+                                player.rounds[
+                                  round.id
+                                ] ??
+                                "–"
+                              }
+                            </td>
+                          )
+                        )}
+
+                        <td className="right">
+                          <strong>
+                            {
+                              player.total
+                            }
+                          </strong>
+                        </td>
+
+                      </tr>
+                    )
+                  );
+
+              })()}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
       </div>
 
     </main>
