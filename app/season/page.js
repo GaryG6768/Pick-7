@@ -76,7 +76,7 @@ export default function SeasonPage() {
       );
 
       // --------------------------------------------------
-      // GET COMPETITION POINTS
+      // GET MATCH POINTS
       // --------------------------------------------------
 
       const {
@@ -85,7 +85,7 @@ export default function SeasonPage() {
       } = await db
         .from("round_scores")
         .select(
-          "round_id, player_id, competition_points"
+          "round_id, player_id, match_points"
         )
         .in("player_id", playerIds);
 
@@ -103,11 +103,14 @@ export default function SeasonPage() {
       );
 
       // --------------------------------------------------
-      // BUILD LEADERBOARD
+      // BUILD SEASON POINTS
+      //
+      // Season Points are the player's Match Points
+      // from every Pick 7 game added together.
       // --------------------------------------------------
 
-      const leaderboard = profileList.map(
-        (profile) => {
+      const leaderboard =
+        profileList.map((profile) => {
           const roundPoints = {};
 
           scores
@@ -139,10 +142,12 @@ export default function SeasonPage() {
               roundPoints[
                 score.round_id
               ] = Number(
-                score.competition_points || 0
+                score.match_points || 0
               );
             });
 
+          // Add all round Match Points together
+          // to create Season Points.
           const total =
             Object.values(roundPoints).reduce(
               (sum, points) =>
@@ -161,10 +166,9 @@ export default function SeasonPage() {
 
             total,
           };
-        }
-      );
+        });
 
-      // Highest total first
+      // Highest Season Points first
       leaderboard.sort(
         (a, b) =>
           b.total - a.total ||
@@ -225,7 +229,7 @@ export default function SeasonPage() {
   }
 
   // --------------------------------------------------
-  // POSITION STYLE
+  // POSITION STYLING
   // --------------------------------------------------
 
   function getPositionStyle(position) {
@@ -234,9 +238,7 @@ export default function SeasonPage() {
         border:
           "2px solid #f2c94c",
         background:
-          "linear-gradient(90deg, rgba(242,201,76,0.20), rgba(242,201,76,0.06))",
-        boxShadow:
-          "0 0 8px rgba(242,201,76,0.18)",
+          "linear-gradient(90deg, rgba(242,201,76,0.18), rgba(242,201,76,0.05))",
       };
     }
 
@@ -245,7 +247,7 @@ export default function SeasonPage() {
         border:
           "2px solid #c7d0d9",
         background:
-          "linear-gradient(90deg, rgba(199,208,217,0.16), rgba(199,208,217,0.05))",
+          "linear-gradient(90deg, rgba(199,208,217,0.14), rgba(199,208,217,0.04))",
       };
     }
 
@@ -254,21 +256,17 @@ export default function SeasonPage() {
         border:
           "2px solid #d98745",
         background:
-          "linear-gradient(90deg, rgba(217,135,69,0.18), rgba(217,135,69,0.05))",
+          "linear-gradient(90deg, rgba(217,135,69,0.16), rgba(217,135,69,0.04))",
       };
     }
 
     return {
       border:
-        "1px solid rgba(0,168,255,0.65)",
+        "1px solid rgba(0,168,255,0.55)",
       background:
-        "rgba(4,35,57,0.35)",
+        "rgba(4,35,57,0.28)",
     };
   }
-
-  // --------------------------------------------------
-  // POSITION CIRCLE
-  // --------------------------------------------------
 
   function getPositionCircle(position) {
     if (position === 1) {
@@ -297,7 +295,7 @@ export default function SeasonPage() {
 
     return {
       background:
-        "rgba(0,130,200,0.16)",
+        "rgba(0,130,200,0.15)",
       color: "#fff",
     };
   }
@@ -351,27 +349,56 @@ export default function SeasonPage() {
   }
 
   // --------------------------------------------------
-  // PAGE
+  // MAIN PAGE
   // --------------------------------------------------
 
-  return (
-    <main className="wrap">
+  const completedRounds =
+    rounds.filter(
+      (round) =>
+        String(
+          round.status
+        ).toLowerCase() ===
+        "completed"
+    );
 
-      {/* HEADER */}
+  return (
+    <main
+      className="wrap"
+      style={{
+        paddingTop: "10px",
+        paddingBottom: "10px",
+      }}
+    >
+
+      {/* ------------------------------------------------
+          HEADER
+      ------------------------------------------------ */}
 
       <div
         className="card"
         style={{
-          marginBottom: "14px",
+          marginBottom: "8px",
+          padding:
+            "14px 16px",
         }}
       >
-        <div className="muted">
+
+        <div
+          className="muted"
+          style={{
+            fontSize: "12px",
+            marginBottom: "3px",
+          }}
+        >
           SEASON LEAGUE
         </div>
 
         <h2
           style={{
-            marginBottom: "6px",
+            margin:
+              "0 0 4px 0",
+            fontSize: "25px",
+            lineHeight: "1.1",
           }}
         >
           📊 Season Leaderboard
@@ -380,304 +407,338 @@ export default function SeasonPage() {
         <p
           className="muted"
           style={{
-            marginBottom: "0",
+            margin: 0,
+            fontSize: "13px",
           }}
         >
-          Competition Points after{" "}
-          {
-            rounds.filter(
-              (round) =>
-                String(
-                  round.status
-                ).toLowerCase() ===
-                "completed"
-            ).length
-          }{" "}
+          Season Points after{" "}
+          {completedRounds.length}{" "}
           completed rounds.
         </p>
+
       </div>
 
-      {/* LEADERBOARD */}
+      {/* ------------------------------------------------
+          LEADERBOARD
+      ------------------------------------------------ */}
 
       <div
         className="card"
         style={{
-          padding: "12px",
+          padding: "8px",
+          marginBottom: "8px",
         }}
       >
 
         <div
           style={{
             width: "100%",
-            overflowX: "auto",
-            WebkitOverflowScrolling:
-              "touch",
+            overflowX: "hidden",
           }}
         >
 
+          {/* HEADER */}
+
           <div
             style={{
-              minWidth: "690px",
+              display: "grid",
+
+              gridTemplateColumns:
+                "42px minmax(78px,1.4fr) repeat(5,minmax(43px,0.75fr)) minmax(55px,0.9fr)",
+
+              gap: "3px",
+
+              alignItems:
+                "center",
+
+              marginBottom:
+                "4px",
             }}
           >
 
-            {/* HEADER ROW */}
+            <div
+              style={{
+                textAlign:
+                  "center",
+                fontWeight:
+                  "800",
+                fontSize:
+                  "11px",
+                border:
+                  "2px solid rgba(0,150,220,0.65)",
+                borderRadius:
+                  "7px",
+                padding:
+                  "5px 1px",
+              }}
+            >
+              Pos
+            </div>
 
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "72px 190px repeat(5, 1fr) 120px",
-                gap: "6px",
-                alignItems: "center",
-                padding:
-                  "8px 4px 10px 4px",
+                fontWeight:
+                  "800",
+                fontSize:
+                  "11px",
+                paddingLeft:
+                  "5px",
               }}
             >
+              Player
+            </div>
 
-              <div
-                style={{
-                  fontWeight: "700",
-                  textAlign: "center",
-                  fontSize: "14px",
-                }}
-              >
-                Pos
-              </div>
+            {completedRounds
+              .slice(0, 5)
+              .map((round) => (
+                <div
+                  key={round.id}
+                  style={{
+                    border:
+                      "2px solid rgba(0,150,220,0.65)",
+                    borderRadius:
+                      "7px",
+                    padding:
+                      "5px 1px",
+                    textAlign:
+                      "center",
+                    fontWeight:
+                      "800",
+                    fontSize:
+                      "11px",
+                  }}
+                >
+                  R
+                  {
+                    round.round_number
+                  }
+                </div>
+              ))}
 
-              <div
-                style={{
-                  fontWeight: "700",
-                  fontSize: "14px",
-                }}
-              >
-                Player
-              </div>
+            <div
+              style={{
+                border:
+                  "2px solid rgba(0,150,220,0.8)",
+                borderRadius:
+                  "7px",
+                padding:
+                  "5px 1px",
+                textAlign:
+                  "center",
+                fontWeight:
+                  "800",
+                fontSize:
+                  "11px",
+              }}
+            >
+              Season
+            </div>
 
-              {rounds
-                .slice(0, 5)
-                .map((round) => (
+          </div>
+
+          {/* PLAYERS */}
+
+          <div
+            style={{
+              display:
+                "flex",
+              flexDirection:
+                "column",
+              gap: "3px",
+            }}
+          >
+
+            {players.map(
+              (player) => {
+
+                const rowStyle =
+                  getPositionStyle(
+                    player.position
+                  );
+
+                const circleStyle =
+                  getPositionCircle(
+                    player.position
+                  );
+
+                return (
                   <div
-                    key={round.id}
+                    key={
+                      player.player_id
+                    }
                     style={{
-                      border:
-                        "2px solid rgba(0,150,220,0.65)",
-                      borderRadius:
-                        "9px",
-                      padding:
-                        "7px 3px",
-                      textAlign:
+                      display:
+                        "grid",
+
+                      gridTemplateColumns:
+                        "42px minmax(78px,1.4fr) repeat(5,minmax(43px,0.75fr)) minmax(55px,0.9fr)",
+
+                      gap: "3px",
+
+                      alignItems:
                         "center",
-                      fontWeight:
-                        "700",
-                      background:
-                        "rgba(0,80,125,0.16)",
+
+                      minHeight:
+                        "35px",
+
+                      padding:
+                        "2px",
+
+                      borderRadius:
+                        "7px",
+
+                      ...rowStyle,
                     }}
                   >
-                    R
-                    {
-                      round.round_number
-                    }
-                  </div>
-                ))}
 
-              <div
-                style={{
-                  border:
-                    "2px solid rgba(0,150,220,0.65)",
-                  borderRadius:
-                    "9px",
-                  padding:
-                    "7px 3px",
-                  textAlign:
-                    "center",
-                  fontWeight: "700",
-                  background:
-                    "rgba(0,80,125,0.16)",
-                }}
-              >
-                Total
-              </div>
-            </div>
+                    {/* POSITION */}
 
-            {/* PLAYER ROWS */}
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection:
-                  "column",
-                gap: "6px",
-              }}
-            >
-
-              {players.map(
-                (player) => {
-
-                  const positionStyle =
-                    getPositionStyle(
-                      player.position
-                    );
-
-                  const circleStyle =
-                    getPositionCircle(
-                      player.position
-                    );
-
-                  return (
                     <div
-                      key={
-                        player.player_id
-                      }
                       style={{
                         display:
-                          "grid",
-                        gridTemplateColumns:
-                          "72px 190px repeat(5, 1fr) 120px",
-                        gap: "6px",
-                        alignItems:
+                          "flex",
+                        justifyContent:
                           "center",
-                        minHeight:
-                          "48px",
-                        padding:
-                          "4px",
-                        borderRadius:
-                          "10px",
-                        ...positionStyle,
                       }}
                     >
-
-                      {/* POSITION */}
-
                       <div
                         style={{
+                          width:
+                            "25px",
+                          height:
+                            "25px",
+                          borderRadius:
+                            "50%",
                           display:
                             "flex",
+                          alignItems:
+                            "center",
                           justifyContent:
                             "center",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width:
-                              "36px",
-                            height:
-                              "36px",
-                            borderRadius:
-                              "50%",
-                            display:
-                              "flex",
-                            alignItems:
-                              "center",
-                            justifyContent:
-                              "center",
-                            fontWeight:
-                              "800",
-                            fontSize:
-                              "17px",
-                            ...circleStyle,
-                          }}
-                        >
-                          {
-                            player.position
-                          }
-                        </div>
-                      </div>
-
-                      {/* PLAYER */}
-
-                      <div
-                        style={{
-                          fontWeight:
-                            "700",
-                          fontSize:
-                            "15px",
-                          paddingLeft:
-                            "6px",
-                          whiteSpace:
-                            "nowrap",
-                        }}
-                      >
-                        {
-                          player.name
-                        }
-                      </div>
-
-                      {/* ROUND SCORES */}
-
-                      {rounds
-                        .slice(0, 5)
-                        .map(
-                          (round) => {
-
-                            const value =
-                              player
-                                .rounds[
-                                round.id
-                              ];
-
-                            return (
-                              <div
-                                key={
-                                  round.id
-                                }
-                                style={{
-                                  border:
-                                    "2px solid rgba(0,150,220,0.65)",
-                                  borderRadius:
-                                    "8px",
-                                  padding:
-                                    "7px 3px",
-                                  textAlign:
-                                    "center",
-                                  fontSize:
-                                    "14px",
-                                  background:
-                                    "rgba(0,50,85,0.25)",
-                                  minWidth:
-                                    "0",
-                                }}
-                              >
-                                {
-                                  value ??
-                                  "–"
-                                }
-                              </div>
-                            );
-                          }
-                        )}
-
-                      {/* TOTAL */}
-
-                      <div
-                        style={{
-                          border:
-                            "2px solid rgba(0,150,220,0.8)",
-                          borderRadius:
-                            "8px",
-                          padding:
-                            "7px 3px",
-                          textAlign:
-                            "center",
-                          fontSize:
-                            "17px",
                           fontWeight:
                             "800",
-                          background:
-                            "rgba(0,80,125,0.25)",
+                          fontSize:
+                            "12px",
+                          ...circleStyle,
                         }}
                       >
                         {
-                          player.total
+                          player.position
                         }
                       </div>
-
                     </div>
-                  );
-                }
-              )}
 
-            </div>
+                    {/* PLAYER */}
+
+                    <div
+                      style={{
+                        fontWeight:
+                          "700",
+                        fontSize:
+                          "12px",
+                        paddingLeft:
+                          "3px",
+                        whiteSpace:
+                          "nowrap",
+                        overflow:
+                          "hidden",
+                        textOverflow:
+                          "ellipsis",
+                      }}
+                    >
+                      {
+                        player.name
+                      }
+                    </div>
+
+                    {/* ROUNDS */}
+
+                    {completedRounds
+                      .slice(0, 5)
+                      .map(
+                        (round) => {
+
+                          const value =
+                            player
+                              .rounds[
+                              round.id
+                            ];
+
+                          return (
+                            <div
+                              key={
+                                round.id
+                              }
+                              style={{
+                                border:
+                                  "2px solid rgba(0,150,220,0.65)",
+
+                                borderRadius:
+                                  "6px",
+
+                                padding:
+                                  "5px 1px",
+
+                                textAlign:
+                                  "center",
+
+                                fontSize:
+                                  "11px",
+
+                                lineHeight:
+                                  "1",
+
+                                background:
+                                  "rgba(0,50,85,0.22)",
+                              }}
+                            >
+                              {
+                                value ??
+                                "–"
+                              }
+                            </div>
+                          );
+                        }
+                      )}
+
+                    {/* SEASON TOTAL */}
+
+                    <div
+                      style={{
+                        border:
+                          "2px solid rgba(0,150,220,0.8)",
+
+                        borderRadius:
+                          "6px",
+
+                        padding:
+                          "5px 1px",
+
+                        textAlign:
+                          "center",
+
+                        fontSize:
+                          "13px",
+
+                        lineHeight:
+                          "1",
+
+                        fontWeight:
+                          "900",
+
+                        background:
+                          "rgba(0,80,125,0.25)",
+                      }}
+                    >
+                      {
+                        player.total
+                      }
+                    </div>
+
+                  </div>
+                );
+              }
+            )}
 
           </div>
 
@@ -685,35 +746,44 @@ export default function SeasonPage() {
 
       </div>
 
-      {/* INFORMATION */}
+      {/* ------------------------------------------------
+          HOW IT WORKS
+      ------------------------------------------------ */}
 
       <div
         className="card"
         style={{
-          marginTop: "14px",
+          padding:
+            "10px 12px",
         }}
       >
 
-        <h3>
-          How the Season Works
+        <h3
+          style={{
+            margin:
+              "0 0 4px 0",
+            fontSize: "14px",
+          }}
+        >
+          ℹ️ How the Season Works
         </h3>
 
-        <p className="muted">
-          Every completed Pick 7 round
-          contributes Competition Points
-          to your Season League total.
-          <br />
-          <br />
-          Competition Points are awarded
-          according to your finishing
-          position in each round.
-          <br />
-          <br />
-          If you join the Season League
-          after the season has started,
-          only rounds from your joining
-          round onwards count towards
-          your Season total.
+        <p
+          className="muted"
+          style={{
+            margin: 0,
+            fontSize: "11px",
+            lineHeight:
+              "1.35",
+          }}
+        >
+          Every Pick 7 game earns
+          Match Points: exact score =
+          10, correct result = 6,
+          wrong result = 0.
+          These points are added together
+          from every round to give your
+          Season Points.
         </p>
 
       </div>
