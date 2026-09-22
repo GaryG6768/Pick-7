@@ -480,11 +480,15 @@ export default function SeasonPage() {
 
                   minHeight: "32px",
 
-                  padding: "2px",
+padding: "3px",
 
-                  borderRadius: "6px",
+borderRadius: "8px",
 
-                  width: "100%",
+width: "100%",
+
+boxSizing: "border-box",
+
+overflow: "hidden",
 
                   boxSizing:
                     "border-box",
@@ -600,6 +604,7 @@ export default function SeasonPage() {
                       "rgba(0,80,125,0.25)",
                     boxSizing:
                       "border-box",
+                    width: "100%",
                   }}
                 >
                   {player.total}
