@@ -27,6 +27,12 @@ export default function Home() {
 
   const [message, setMessage] = useState("");
 
+  const [gameLockCode, setGameLockCode] = useState("");
+  const [gameUnlocked, setGameUnlocked] = useState(false);
+  const [gameLockReady, setGameLockReady] = useState(false);
+  const [gameCodeInput, setGameCodeInput] = useState("");
+  const [gameCodeMessage, setGameCodeMessage] = useState("");
+
   const [changePasswordOpen, setChangePasswordOpen] =
     useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -36,12 +42,6 @@ export default function Home() {
     useState(false);
 
   const scoreRefs = useRef([]);
-
-  /*
-   --------------------------------------------------
-   LOAD CURRENT ROUND
-   --------------------------------------------------
-  */
 
   useEffect(() => {
     loadPage();
@@ -53,6 +53,42 @@ export default function Home() {
 
     try {
       const db = supabase();
+
+      const {
+        data: gameSettings,
+        error: gameSettingsError,
+      } = await db
+        .from("game_settings")
+        .select("game_lock_code")
+        .eq("id", 1)
+        .maybeSingle();
+
+      if (gameSettingsError) {
+        throw gameSettingsError;
+      }
+
+      const currentLockCode =
+        gameSettings?.game_lock_code || "";
+
+      setGameLockCode(currentLockCode);
+
+      let savedUnlockCode = "";
+
+      try {
+        savedUnlockCode =
+          localStorage.getItem(
+            "pick7_game_unlock_code"
+          ) || "";
+      } catch {}
+
+      setGameUnlocked(
+        Boolean(
+          currentLockCode &&
+            savedUnlockCode === currentLockCode
+        )
+      );
+
+      setGameLockReady(true);
 
       const {
         data: { session },
@@ -154,18 +190,8 @@ export default function Home() {
 
       setGames(orderedGames);
 
-      /*
-       --------------------------------------------------
-       USE DATABASE ROUND DEADLINE
-       --------------------------------------------------
-       
-       The database deadline is set to one hour before
-       the earliest Premier League fixture in the
-       Matchweek, whether or not that fixture is one
-       of the seven Pick 7 games.
-      */
-
-      const deadline = currentRound.predictions_deadline;
+      const deadline =
+        currentRound.predictions_deadline;
 
       if (deadline) {
         const deadlineTime =
@@ -174,12 +200,6 @@ export default function Home() {
         setLockTime(deadline);
         setLocked(deadlineTime <= Date.now());
       } else {
-        /*
-         Fallback only if the database deadline is
-         missing. In that case use one hour before
-         the earliest selected Pick 7 game.
-        */
-
         const earliestKickoff = Math.min(
           ...orderedGames.map((game) =>
             new Date(game.kickoff).getTime()
@@ -187,7 +207,8 @@ export default function Home() {
         );
 
         const fallbackDeadline = new Date(
-          earliestKickoff - 60 * 60 * 1000
+          earliestKickoff -
+            60 * 60 * 1000
         ).toISOString();
 
         setLockTime(fallbackDeadline);
@@ -197,12 +218,6 @@ export default function Home() {
             Date.now()
         );
       }
-
-      /*
-       --------------------------------------------------
-       LOAD EXISTING PICKS
-       --------------------------------------------------
-      */
 
       if (currentUser) {
         await loadExistingPicks(
@@ -225,12 +240,6 @@ export default function Home() {
       setLoading(false);
     }
   }
-
-  /*
-   --------------------------------------------------
-   REFRESH LIVE RESULTS
-   --------------------------------------------------
-  */
 
   useEffect(() => {
     if (!round || games.length === 0) {
@@ -304,12 +313,6 @@ export default function Home() {
     };
   }, [round?.id, games.length]);
 
-  /*
-   --------------------------------------------------
-   CALCULATE GAME POINTS
-   --------------------------------------------------
-  */
-
   function getGamePoints(
     prediction,
     fixture
@@ -360,12 +363,6 @@ export default function Home() {
     return 0;
   }
 
-  /*
-   --------------------------------------------------
-   CALCULATE RUNNING TOTAL
-   --------------------------------------------------
-  */
-
   function getRunningTotal() {
     if (!user || !submitted) {
       return null;
@@ -399,12 +396,6 @@ export default function Home() {
     };
   }
 
-  /*
-   --------------------------------------------------
-   LOAD PROFILE
-   --------------------------------------------------
-  */
-
   async function loadProfile(userId) {
     try {
       const { data } = await supabase()
@@ -421,12 +412,6 @@ export default function Home() {
       );
     }
   }
-
-  /*
-   --------------------------------------------------
-   LOAD PLAYER NAMES
-   --------------------------------------------------
-  */
 
   async function loadPlayers() {
     try {
@@ -456,12 +441,6 @@ export default function Home() {
       );
     }
   }
-
-  /*
-   --------------------------------------------------
-   EXISTING PICKS
-   --------------------------------------------------
-  */
 
   async function loadExistingPicks(
     userId,
@@ -518,12 +497,6 @@ export default function Home() {
       );
     }
   }
-
-  /*
-   --------------------------------------------------
-   COUNTDOWN
-   --------------------------------------------------
-  */
 
   useEffect(() => {
     if (!lockTime) {
@@ -599,12 +572,6 @@ export default function Home() {
       clearInterval(timer);
     };
   }, [lockTime]);
-
-  /*
-   --------------------------------------------------
-   SIGN IN
-   --------------------------------------------------
-  */
 
   async function signIn(event) {
     event.preventDefault();
@@ -716,12 +683,6 @@ export default function Home() {
     }
   }
 
-  /*
-   --------------------------------------------------
-   SCORE ENTRY
-   --------------------------------------------------
-  */
-
   function updateScore(
     fixtureId,
     side,
@@ -763,12 +724,6 @@ export default function Home() {
       }
     }
   }
-
-  /*
-   --------------------------------------------------
-   SUBMIT PICKS
-   --------------------------------------------------
-  */
 
   async function submitPicks() {
     if (
@@ -879,12 +834,6 @@ export default function Home() {
     }
   }
 
-  /*
-   --------------------------------------------------
-   SIGN OUT
-   --------------------------------------------------
-  */
-
   async function signOut() {
     setUser(null);
     setIsAdmin(false);
@@ -911,12 +860,6 @@ export default function Home() {
       );
     }
   }
-
-  /*
-   --------------------------------------------------
-   CHANGE PASSWORD
-   --------------------------------------------------
-  */
 
   async function changePassword() {
     if (changingPassword) {
@@ -985,11 +928,35 @@ export default function Home() {
     }
   }
 
-  /*
-   --------------------------------------------------
-   FORMAT KICKOFF
-   --------------------------------------------------
-  */
+  function unlockGame() {
+    const entered =
+      gameCodeInput.trim();
+
+    if (!/^\d{4}$/.test(entered)) {
+      setGameCodeMessage(
+        "Please enter the 4-digit game code."
+      );
+      return;
+    }
+
+    if (entered !== gameLockCode) {
+      setGameCodeMessage(
+        "Incorrect game code."
+      );
+      return;
+    }
+
+    try {
+      localStorage.setItem(
+        "pick7_game_unlock_code",
+        entered
+      );
+    } catch {}
+
+    setGameUnlocked(true);
+    setGameCodeMessage("");
+    setGameCodeInput("");
+  }
 
   function formatKickoff(kickoff) {
     return new Date(
@@ -1006,20 +973,108 @@ export default function Home() {
     );
   }
 
-  /*
-   --------------------------------------------------
-   RUNNING TOTAL
-   --------------------------------------------------
-  */
-
   const runningTotal =
     getRunningTotal();
 
-  /*
-   --------------------------------------------------
-   RENDER
-   --------------------------------------------------
-  */
+  if (!gameLockReady) {
+    return (
+      <main className="wrap">
+        <section className="card hero">
+          <div className="pill">
+            PICK 7
+          </div>
+
+          <h2>
+            Loading Game
+          </h2>
+
+          <p className="muted">
+            Please wait...
+          </p>
+        </section>
+      </main>
+    );
+  }
+
+  if (!gameUnlocked) {
+    return (
+      <main className="wrap">
+        <section className="card hero">
+          <div className="pill">
+            🔒 PICK 7
+          </div>
+
+          <h2>
+            Game Locked
+          </h2>
+
+          <p className="muted">
+            Enter the 4-digit game code to access Pick 7.
+          </p>
+
+          <input
+            type="tel"
+            inputMode="numeric"
+            maxLength={4}
+            value={gameCodeInput}
+            onChange={(event) => {
+              setGameCodeInput(
+                event.target.value
+                  .replace(/\D/g, "")
+                  .slice(0, 4)
+              );
+
+              setGameCodeMessage("");
+            }}
+            onKeyDown={(event) => {
+              if (
+                event.key === "Enter"
+              ) {
+                unlockGame();
+              }
+            }}
+            placeholder="4-digit game code"
+            autoComplete="off"
+            style={{
+              width: "100%",
+              padding: 14,
+              marginTop: 12,
+              marginBottom: 12,
+              background: "#07111f",
+              color: "white",
+              border: "1px solid #42627e",
+              borderRadius: 8,
+              textAlign: "center",
+              fontSize: 24,
+              letterSpacing: 6
+            }}
+          />
+
+          <button
+            className="btn"
+            type="button"
+            onClick={unlockGame}
+            disabled={
+              gameCodeInput.length !== 4
+            }
+          >
+            UNLOCK GAME
+          </button>
+
+          {gameCodeMessage && (
+            <div
+              className="notice"
+              style={{
+                marginTop: 16
+              }}
+            >
+              {gameCodeMessage}
+            </div>
+          )}
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="wrap">
