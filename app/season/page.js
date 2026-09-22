@@ -194,13 +194,14 @@ export default function SeasonPage() {
 
   function getRowStyle(position) {
     if (position === 1) {
-      return {
-        border:
-          "2px solid #f2c94c",
-        background:
-          "linear-gradient(90deg, rgba(242,201,76,0.18), rgba(242,201,76,0.04))",
-      };
-    }
+  return {
+    border:
+      "2px solid #f2c94c",
+    background:
+      "linear-gradient(90deg, rgba(242,201,76,0.18), rgba(242,201,76,0.04))",
+    boxSizing: "border-box",
+  };
+}
 
     if (position === 2) {
       return {
@@ -208,6 +209,7 @@ export default function SeasonPage() {
           "2px solid #c7d0d9",
         background:
           "linear-gradient(90deg, rgba(199,208,217,0.14), rgba(199,208,217,0.04))",
+        boxSizing: "border-box",
       };
     }
 
@@ -217,6 +219,7 @@ export default function SeasonPage() {
           "2px solid #d98745",
         background:
           "linear-gradient(90deg, rgba(217,135,69,0.16), rgba(217,135,69,0.04))",
+        boxSizing: "border-box",
       };
     }
 
