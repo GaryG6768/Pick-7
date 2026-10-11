@@ -345,6 +345,11 @@ export default function SeasonPage() {
       )
       
 
+const displayRounds =
+  completedRounds.filter(
+    (round) => round.round_number > 1
+  );
+
   /*
    * COMPACT COLUMN WIDTHS
    *
@@ -353,7 +358,7 @@ export default function SeasonPage() {
    */
 
   const columns =
-    `30px minmax(58px,1fr) repeat(${completedRounds.length},32px) 43px`;
+    `30px minmax(58px,1fr) repeat(${displayRounds.length},32px) 43px`;
 
   return (
     <main
@@ -490,7 +495,7 @@ export default function SeasonPage() {
             Player
           </div>
 
-          {completedRounds.map(
+          displayRounds.map(
             (round) => (
               <div
                 key={round.id}
@@ -663,7 +668,7 @@ export default function SeasonPage() {
 
                 {/* R1-R5 */}
 
-                {completedRounds.map(
+                displayRounds.map(
                   (round) => {
                     const value =
                       player
