@@ -352,8 +352,8 @@ export default function SeasonPage() {
    * inside a normal mobile screen.
    */
 
-  const columns =
-    `30px minmax(58px,1fr) repeat(${completedRounds.length},32px) 43px`;
+    const columns =
+    `30px minmax(58px,1fr) repeat(${completedRounds.filter((round) => Number(round.round_number) !== 1).length},32px) 43px`;
 
   return (
     <main
@@ -494,6 +494,7 @@ export default function SeasonPage() {
             (round) => (
               <div
                 key={round.id}
+                        hidden={Number(round.round_number) === 1}
                 style={{
                   border:
                     "2px solid rgba(0,150,220,0.65)",
@@ -676,6 +677,7 @@ export default function SeasonPage() {
                         key={
                           round.id
                         }
+                  hidden={Number(round.round_number) === 1}
                         style={{
                           border:
                             "2px solid rgba(0,150,220,0.65)",
