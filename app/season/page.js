@@ -342,13 +342,8 @@ export default function SeasonPage() {
             round.status
           ).toLowerCase() ===
           "completed"
-            );
+      )
       
-
-const displayRounds =
-  completedRounds.filter(
-    (round) => round.round_number > 1
-  );
 
   /*
    * COMPACT COLUMN WIDTHS
@@ -358,7 +353,7 @@ const displayRounds =
    */
 
   const columns =
-    `30px minmax(58px,1fr) repeat(${displayRounds.length},32px) 43px`;
+    `30px minmax(58px,1fr) repeat(${completedRounds.length},32px) 43px`;
 
   return (
     <main
@@ -495,7 +490,7 @@ const displayRounds =
             Player
           </div>
 
-          {displayRounds.map(
+          {completedRounds.map(
             (round) => (
               <div
                 key={round.id}
@@ -668,7 +663,7 @@ const displayRounds =
 
                 {/* R1-R5 */}
 
-                {displayRounds.map(
+                {completedRounds.map(
                   (round) => {
                     const value =
                       player
