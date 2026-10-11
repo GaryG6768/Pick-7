@@ -495,7 +495,7 @@ const displayRounds =
             Player
           </div>
 
-          displayRounds.map(
+          {displayRounds.map(
             (round) => (
               <div
                 key={round.id}
