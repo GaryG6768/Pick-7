@@ -343,7 +343,7 @@ export default function SeasonPage() {
           ).toLowerCase() ===
           "completed"
       )
-      .slice(0, 5);
+      
 
   /*
    * COMPACT COLUMN WIDTHS
@@ -353,7 +353,7 @@ export default function SeasonPage() {
    */
 
   const columns =
-    "30px minmax(58px,1fr) repeat(5,32px) 43px";
+    `30px minmax(58px,1fr) repeat(${completedRounds.length},32px) 43px`;
 
   return (
     <main
