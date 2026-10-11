@@ -342,7 +342,7 @@ export default function SeasonPage() {
             round.status
           ).toLowerCase() ===
           "completed"
-      )
+            );
       
 
 const displayRounds =
