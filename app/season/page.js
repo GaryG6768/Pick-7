@@ -668,7 +668,7 @@ const displayRounds =
 
                 {/* R1-R5 */}
 
-                displayRounds.map(
+                {displayRounds.map(
                   (round) => {
                     const value =
                       player
