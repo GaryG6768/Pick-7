@@ -1,4 +1,4 @@
-"use client";
+."use client";
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
@@ -340,9 +340,9 @@ export default function SeasonPage() {
 
   // Hide Rounds 1 and 2 from the visible table only.
   // Their points still count towards each player's season total.
-  const displayRounds = completedRounds.filter(
-    (round) => Number(round.round_number) > 2
-  );
+  const displayRounds = completedRounds
+  .filter((round) => Number(round.round_number) > 2)
+  .slice(-5);
 
 /*
    * COMPACT COLUMN WIDTHS
