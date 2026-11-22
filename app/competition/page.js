@@ -1627,26 +1627,31 @@ export default function CompetitionPage() {
                                             );
                                           })}
                                         </div>
-                                        <div style={{ width: "100%", minWidth: 0 }}>
-                                          <div style={{ display: "grid", gridTemplateColumns: "22px minmax(58px, 1.15fr) repeat(7, minmax(18px, 0.48fr)) 40px", alignItems: "center", gap: "3px", padding: "0 5px 6px", boxSizing: "border-box" }}>
+                                        <div style={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
+                                          <div style={{ display: "grid", gridTemplateColumns: "18px minmax(0, 1fr) repeat(7, minmax(0, 19px)) 38px", alignItems: "center", columnGap: "2px", padding: "0 4px 7px", boxSizing: "border-box", width: "100%" }}>
                                             <span className="muted" style={{ fontSize: "9px", textAlign: "center" }}>#</span>
-                                            <span className="muted" style={{ fontSize: "9px" }}>PLAYER</span>
+                                            <span className="muted" style={{ fontSize: "9px", letterSpacing: "0.3px" }}>PLAYER</span>
                                             {Array.from({ length: 7 }, (_, index) => (
                                               <span key={index + 1} className="muted" style={{ fontSize: "9px", textAlign: "center" }}>M{index + 1}</span>
                                             ))}
-                                            <strong style={{ fontSize: "10px", textAlign: "right" }}>TOTAL</strong>
+                                            <strong style={{ fontSize: "9px", textAlign: "center", color: "#f5c842" }}>TOTAL</strong>
                                           </div>
-                                          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+
+                                          <div style={{ display: "flex", flexDirection: "column", gap: "5px", width: "100%" }}>
                                             {live.players.map((player) => (
-                                              <div key={player.player_id} style={{ display: "grid", gridTemplateColumns: "22px minmax(58px, 1.15fr) repeat(7, minmax(18px, 0.48fr)) 40px", alignItems: "center", gap: "3px", padding: "9px 5px", borderRadius: "8px", boxSizing: "border-box", width: "100%", background: player.position === 1 ? "rgba(245,200,66,0.12)" : "rgba(255,255,255,0.035)", border: player.position === 1 ? "1px solid rgba(245,200,66,0.55)" : "1px solid rgba(255,255,255,0.06)" }}>
-                                                <strong style={{ fontSize: "11px", textAlign: "center" }}>{player.position}</strong>
-                                                <strong style={{ fontSize: "11px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{player.name}</strong>
-                                                {Array.from({ length: 7 }, (_, index) => (
-                                                  <span key={index + 1} style={{ textAlign: "center", fontSize: "10px", color: player.fixturePoints[index + 1] === null || player.fixturePoints[index + 1] === undefined ? "rgba(255,255,255,0.38)" : "inherit" }}>
-                                                    {player.fixturePoints[index + 1] ?? "—"}
-                                                  </span>
-                                                ))}
-                                                <strong style={{ textAlign: "right", fontSize: "12px", whiteSpace: "nowrap" }}>{player.total}</strong>
+                                              <div key={player.player_id} style={{ display: "grid", gridTemplateColumns: "18px minmax(0, 1fr) repeat(7, minmax(0, 19px)) 38px", alignItems: "center", columnGap: "2px", padding: "7px 4px", borderRadius: "9px", boxSizing: "border-box", width: "100%", minWidth: 0, background: player.position === 1 ? "rgba(245,200,66,0.10)" : "rgba(255,255,255,0.035)", border: player.position === 1 ? "1px solid rgba(245,200,66,0.55)" : "1px solid rgba(255,255,255,0.07)" }}>
+                                                <strong style={{ fontSize: "10px", textAlign: "center", color: player.position === 1 ? "#f5c842" : "rgba(255,255,255,0.78)" }}>{player.position}</strong>
+                                                <strong style={{ fontSize: "10px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{player.name}</strong>
+                                                {Array.from({ length: 7 }, (_, index) => {
+                                                  const value = player.fixturePoints[index + 1];
+                                                  const pending = value === null || value === undefined;
+                                                  return (
+                                                    <span key={index + 1} style={{ textAlign: "center", fontSize: "10px", fontWeight: value > 0 ? 700 : 500, color: pending ? "rgba(255,255,255,0.32)" : value > 0 ? "#ffffff" : "rgba(255,255,255,0.72)" }}>
+                                                      {pending ? "–" : value}
+                                                    </span>
+                                                  );
+                                                })}
+                                                <strong style={{ textAlign: "center", fontSize: "11px", color: "#f5c842", background: "rgba(245,200,66,0.12)", borderRadius: "6px", padding: "4px 1px", minWidth: 0 }}>{player.total}</strong>
                                               </div>
                                             ))}
                                           </div>
