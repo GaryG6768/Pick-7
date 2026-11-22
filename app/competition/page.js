@@ -17,10 +17,28 @@ export default function CompetitionPage() {
   const [gameSummaryView, setGameSummaryView] = useState({});
   const [openSummaryRounds, setOpenSummaryRounds] = useState({});
   const [expandedGameSummaries, setExpandedGameSummaries] = useState({});
+  const [liveRoundData, setLiveRoundData] = useState({});
+  const [loadingLiveRound, setLoadingLiveRound] = useState(null);
 
   useEffect(() => {
     loadCompetition();
   }, []);
+
+  // Keep the currently open round's provisional leaderboard up to date.
+  useEffect(() => {
+    const liveRound = [...rounds]
+      .filter((round) => String(round.status).toLowerCase() === "open")
+      .sort((a, b) => Number(b.round_number) - Number(a.round_number))[0];
+
+    if (!liveRound) return;
+
+    loadLiveRoundData(liveRound.id);
+    const timer = setInterval(() => {
+      loadLiveRoundData(liveRound.id);
+    }, 30000);
+
+    return () => clearInterval(timer);
+  }, [rounds]);
 
   // --------------------------------------------------
   // GAME / ROUND DISPLAY
@@ -38,6 +56,167 @@ export default function CompetitionPage() {
     return `GAME ${getGameNumber(roundNumber)} • ROUND ${getGameRound(
       roundNumber
     )}`;
+  }
+
+  // --------------------------------------------------
+  // LIVE LEADERBOARD FOR THE OPEN ROUND
+  // --------------------------------------------------
+
+  async function loadLiveRoundData(roundId) {
+    if (!roundId) return;
+
+    try {
+      setLoadingLiveRound(roundId);
+      const db = supabase();
+
+      const [
+        { data: roundFixtures, error: roundFixturesError },
+        { data: predictions, error: predictionsError },
+        { data: activeProfiles, error: profilesError },
+      ] = await Promise.all([
+        db
+          .from("round_fixtures")
+          .select("fixture_id, fixture_number")
+          .eq("round_id", roundId)
+          .order("fixture_number", { ascending: true }),
+        db
+          .from("predictions")
+          .select("player_id, fixture_id, predicted_home, predicted_away")
+          .eq("round_id", roundId),
+        db
+          .from("profiles")
+          .select("id, display_name")
+          .eq("active", true),
+      ]);
+
+      if (roundFixturesError) throw roundFixturesError;
+      if (predictionsError) throw predictionsError;
+      if (profilesError) throw profilesError;
+
+      const fixtureIds = (roundFixtures || [])
+        .map((item) => item.fixture_id)
+        .filter(Boolean);
+
+      let fixtureRows = [];
+      if (fixtureIds.length > 0) {
+        const { data, error } = await db
+          .from("fixtures")
+          .select("id, home_team, away_team, home_score, away_score, result_entered")
+          .in("id", fixtureIds);
+
+        if (error) throw error;
+        fixtureRows = data || [];
+      }
+
+      const fixtureMap = Object.fromEntries(
+        fixtureRows.map((fixture) => [fixture.id, fixture])
+      );
+      const predictionMap = Object.fromEntries(
+        (predictions || []).map((prediction) => [
+          `${prediction.player_id}:${prediction.fixture_id}`,
+          prediction,
+        ])
+      );
+
+      const fixtures = (roundFixtures || [])
+        .map((item, index) => ({
+          fixture_number: Number(item.fixture_number || index + 1),
+          ...(fixtureMap[item.fixture_id] || {}),
+        }))
+        .filter((fixture) => fixture.id);
+
+      const completedFixtures = fixtures.filter(
+        (fixture) =>
+          fixture.result_entered === true &&
+          fixture.home_score !== null &&
+          fixture.home_score !== undefined &&
+          fixture.away_score !== null &&
+          fixture.away_score !== undefined
+      );
+
+      const players = (activeProfiles || []).map((profile) => {
+        const fixturePoints = {};
+        let total = 0;
+
+        fixtures.forEach((fixture) => {
+          const prediction = predictionMap[
+            `${profile.id}:${fixture.id}`
+          ];
+
+          if (!completedFixtures.some((item) => item.id === fixture.id)) {
+            fixturePoints[fixture.fixture_number] = null;
+            return;
+          }
+
+          let points = 0;
+          if (prediction) {
+            const predictedHome = Number(prediction.predicted_home);
+            const predictedAway = Number(prediction.predicted_away);
+            const actualHome = Number(fixture.home_score);
+            const actualAway = Number(fixture.away_score);
+
+            if (
+              predictedHome === actualHome &&
+              predictedAway === actualAway
+            ) {
+              points = 10;
+            } else {
+              const predictedOutcome =
+                predictedHome > predictedAway
+                  ? "H"
+                  : predictedHome < predictedAway
+                    ? "A"
+                    : "D";
+              const actualOutcome =
+                actualHome > actualAway
+                  ? "H"
+                  : actualHome < actualAway
+                    ? "A"
+                    : "D";
+
+              if (predictedOutcome === actualOutcome) points = 6;
+            }
+          }
+
+          fixturePoints[fixture.fixture_number] = points;
+          total += points;
+        });
+
+        return {
+          player_id: profile.id,
+          name: profile.display_name || "Player",
+          fixturePoints,
+          total,
+        };
+      }).sort(
+        (a, b) => b.total - a.total || a.name.localeCompare(b.name)
+      );
+
+      let previousTotal = null;
+      let previousPosition = 0;
+      const rankedPlayers = players.map((player, index) => {
+        const position = player.total === previousTotal
+          ? previousPosition
+          : index + 1;
+        previousTotal = player.total;
+        previousPosition = position;
+        return { ...player, position };
+      });
+
+      setLiveRoundData((current) => ({
+        ...current,
+        [roundId]: {
+          fixtures,
+          players: rankedPlayers,
+          completedCount: completedFixtures.length,
+          updatedAt: new Date().toISOString(),
+        },
+      }));
+    } catch (error) {
+      console.error("Live round leaderboard error:", error);
+    } finally {
+      setLoadingLiveRound(null);
+    }
   }
 
   // --------------------------------------------------
@@ -1101,6 +1280,9 @@ export default function CompetitionPage() {
   const gameNumbers = [...new Set(
     rounds.map((round) => getGameNumber(round.round_number))
   )].sort((a, b) => a - b);
+  const currentGameNumber = rounds.length
+    ? getGameNumber(Math.max(...rounds.map((round) => Number(round.round_number) || 0)))
+    : 1;
 
   const gameSummaries = gameNumbers.map((gameNumber) => {
     const gameRounds = rounds.filter(
@@ -1207,7 +1389,7 @@ export default function CompetitionPage() {
           Competition Rounds
         </h3>
 
-        {[1, 2].map(
+        {gameNumbers.map(
           (gameNumber) => {
             const gameRounds =
               rounds.filter(
@@ -1284,7 +1466,7 @@ export default function CompetitionPage() {
                   </strong>
 
                   {gameNumber ===
-                    2 && (
+                    currentGameNumber && (
                     <span
                       className="muted"
                       style={{
@@ -1355,14 +1537,14 @@ export default function CompetitionPage() {
 
                             background:
                               gameNumber ===
-                                2 &&
+                                currentGameNumber &&
                               !completed
                                 ? "rgba(0,140,210,0.10)"
                                 : "rgba(255,255,255,0.05)",
 
                             border:
                               gameNumber ===
-                                2 &&
+                                currentGameNumber &&
                               !completed
                                 ? "1px solid rgba(0,140,210,0.45)"
                                 : "1px solid rgba(255,255,255,0.08)",
@@ -1470,6 +1652,69 @@ export default function CompetitionPage() {
                               )}
                             </span>
                           </button>
+
+                          {/* LIVE TABLE FOR THE CURRENT OPEN ROUND */}
+                          {!completed && (
+                            <div style={{ padding: "0 12px 14px 12px", borderTop: "1px solid rgba(0,140,210,0.25)" }}>
+                              {(() => {
+                                const live = liveRoundData[round.id];
+                                return (
+                                  <>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", margin: "12px 0 8px" }}>
+                                      <strong style={{ fontSize: "13px" }}>⚡ LIVE ROUND LEADERBOARD</strong>
+                                      <span className="muted" style={{ fontSize: "11px", whiteSpace: "nowrap" }}>
+                                        {live ? `${live.completedCount} OF 7 SCORED` : "LOADING"}
+                                      </span>
+                                    </div>
+                                    <p className="muted" style={{ fontSize: "12px", margin: "0 0 10px" }}>
+                                      Points from completed matches only. Exact score = 10 points; correct result = 6 points. Updates every 30 seconds.
+                                    </p>
+                                    {!live ? (
+                                      <p className="muted" style={{ margin: "8px 0" }}>
+                                        {loadingLiveRound === round.id ? "Loading live scores..." : "Live scores will appear shortly."}
+                                      </p>
+                                    ) : (
+                                      <>
+                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "4px", marginBottom: "10px" }}>
+                                          {Array.from({ length: 7 }, (_, index) => {
+                                            const fixture = live.fixtures.find((item) => item.fixture_number === index + 1);
+                                            const finished = fixture && fixture.result_entered === true &&
+                                              fixture.home_score !== null && fixture.home_score !== undefined &&
+                                              fixture.away_score !== null && fixture.away_score !== undefined;
+                                            return (
+                                              <div key={index + 1} style={{ minWidth: 0, padding: "6px 2px", borderRadius: "7px", textAlign: "center", background: finished ? "rgba(0,140,90,0.13)" : "rgba(255,255,255,0.04)" }}>
+                                                <div className="muted" style={{ fontSize: "10px" }}>M{index + 1}</div>
+                                                <strong style={{ display: "block", fontSize: "11px" }}>
+                                                  {finished ? `${fixture.home_score}-${fixture.away_score}` : "—"}
+                                                </strong>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                                          {live.players.map((player) => (
+                                            <div key={player.player_id} style={{ display: "grid", gridTemplateColumns: "28px minmax(70px, 1fr) repeat(7, minmax(22px, 0.55fr)) 42px", alignItems: "center", gap: "3px", padding: "8px 5px", borderRadius: "8px", background: player.position === 1 ? "rgba(245,200,66,0.12)" : "rgba(255,255,255,0.035)", border: player.position === 1 ? "1px solid rgba(245,200,66,0.55)" : "1px solid rgba(255,255,255,0.06)" }}>
+                                              <strong style={{ fontSize: "12px", textAlign: "center" }}>{player.position}</strong>
+                                              <strong style={{ fontSize: "12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{player.name}</strong>
+                                              {Array.from({ length: 7 }, (_, index) => (
+                                                <span key={index + 1} style={{ textAlign: "center", fontSize: "11px", color: player.fixturePoints[index + 1] === null || player.fixturePoints[index + 1] === undefined ? "rgba(255,255,255,0.38)" : "inherit" }}>
+                                                  {player.fixturePoints[index + 1] ?? "—"}
+                                                </span>
+                                              ))}
+                                              <strong style={{ textAlign: "right", fontSize: "13px" }}>{player.total}</strong>
+                                            </div>
+                                          ))}
+                                        </div>
+                                        <div className="muted" style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginTop: "6px", padding: "0 4px" }}>
+                                          <span>POS / PLAYER</span><span>M1–M7</span><span>TOTAL</span>
+                                        </div>
+                                      </>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          )}
 
                           {/* OPEN COMPLETED ROUND */}
 
@@ -2288,3 +2533,4 @@ Current game points only. Previous games remain visible above but do not count t
     </main>
   );
 }
+
