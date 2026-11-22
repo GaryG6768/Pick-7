@@ -60,6 +60,8 @@ export default function CompetitionPage() {
 
   // --------------------------------------------------
   // LIVE LEADERBOARD FOR THE OPEN ROUND
+  // Scores are calculated by a secure database RPC so RLS
+  // does not limit the browser to the logged-in player's picks.
   // --------------------------------------------------
 
   async function loadLiveRoundData(roundId) {
@@ -67,128 +69,56 @@ export default function CompetitionPage() {
 
     try {
       setLoadingLiveRound(roundId);
-      const db = supabase();
-
-      const [
-        { data: roundFixtures, error: roundFixturesError },
-        { data: predictions, error: predictionsError },
-        { data: activeProfiles, error: profilesError },
-      ] = await Promise.all([
-        db
-          .from("round_fixtures")
-          .select("fixture_id, fixture_number")
-          .eq("round_id", roundId)
-          .order("fixture_number", { ascending: true }),
-        db
-          .from("predictions")
-          .select("player_id, fixture_id, predicted_home, predicted_away")
-          .eq("round_id", roundId),
-        db
-          .from("profiles")
-          .select("id, display_name")
-          .eq("active", true),
-      ]);
-
-      if (roundFixturesError) throw roundFixturesError;
-      if (predictionsError) throw predictionsError;
-      if (profilesError) throw profilesError;
-
-      const fixtureIds = (roundFixtures || [])
-        .map((item) => item.fixture_id)
-        .filter(Boolean);
-
-      let fixtureRows = [];
-      if (fixtureIds.length > 0) {
-        const { data, error } = await db
-          .from("fixtures")
-          .select("id, home_team, away_team, home_score, away_score, result_entered")
-          .in("id", fixtureIds);
-
-        if (error) throw error;
-        fixtureRows = data || [];
-      }
-
-      const fixtureMap = Object.fromEntries(
-        fixtureRows.map((fixture) => [fixture.id, fixture])
-      );
-      const predictionMap = Object.fromEntries(
-        (predictions || []).map((prediction) => [
-          `${prediction.player_id}:${prediction.fixture_id}`,
-          prediction,
-        ])
+      const { data, error } = await supabase().rpc(
+        "get_live_pick7_round_leaderboard",
+        { p_round_id: roundId }
       );
 
-      const fixtures = (roundFixtures || [])
-        .map((item, index) => ({
-          fixture_number: Number(item.fixture_number || index + 1),
-          ...(fixtureMap[item.fixture_id] || {}),
-        }))
-        .filter((fixture) => fixture.id);
+      if (error) throw error;
 
-      const completedFixtures = fixtures.filter(
-        (fixture) =>
-          fixture.result_entered === true &&
-          fixture.home_score !== null &&
-          fixture.home_score !== undefined &&
-          fixture.away_score !== null &&
-          fixture.away_score !== undefined
+      const rows = data || [];
+      const fixtureMap = new Map();
+      const playerMap = new Map();
+
+      rows.forEach((row) => {
+        if (!fixtureMap.has(row.fixture_id)) {
+          fixtureMap.set(row.fixture_id, {
+            id: row.fixture_id,
+            fixture_number: Number(row.fixture_number),
+            home_team: row.home_team || "",
+            away_team: row.away_team || "",
+            home_score: row.home_score,
+            away_score: row.away_score,
+            result_entered: row.result_entered === true,
+          });
+        }
+
+        if (!playerMap.has(row.player_id)) {
+          playerMap.set(row.player_id, {
+            player_id: row.player_id,
+            name: row.display_name || "Player",
+            fixturePoints: {},
+            total: 0,
+          });
+        }
+
+        const player = playerMap.get(row.player_id);
+        const finished =
+          row.result_entered === true &&
+          row.home_score !== null &&
+          row.home_score !== undefined &&
+          row.away_score !== null &&
+          row.away_score !== undefined;
+        const points = finished ? Number(row.points || 0) : null;
+
+        player.fixturePoints[Number(row.fixture_number)] = points;
+        if (finished) player.total += points;
+      });
+
+      const fixtures = [...fixtureMap.values()].sort(
+        (a, b) => a.fixture_number - b.fixture_number
       );
-
-      const players = (activeProfiles || []).map((profile) => {
-        const fixturePoints = {};
-        let total = 0;
-
-        fixtures.forEach((fixture) => {
-          const prediction = predictionMap[
-            `${profile.id}:${fixture.id}`
-          ];
-
-          if (!completedFixtures.some((item) => item.id === fixture.id)) {
-            fixturePoints[fixture.fixture_number] = null;
-            return;
-          }
-
-          let points = 0;
-          if (prediction) {
-            const predictedHome = Number(prediction.predicted_home);
-            const predictedAway = Number(prediction.predicted_away);
-            const actualHome = Number(fixture.home_score);
-            const actualAway = Number(fixture.away_score);
-
-            if (
-              predictedHome === actualHome &&
-              predictedAway === actualAway
-            ) {
-              points = 10;
-            } else {
-              const predictedOutcome =
-                predictedHome > predictedAway
-                  ? "H"
-                  : predictedHome < predictedAway
-                    ? "A"
-                    : "D";
-              const actualOutcome =
-                actualHome > actualAway
-                  ? "H"
-                  : actualHome < actualAway
-                    ? "A"
-                    : "D";
-
-              if (predictedOutcome === actualOutcome) points = 6;
-            }
-          }
-
-          fixturePoints[fixture.fixture_number] = points;
-          total += points;
-        });
-
-        return {
-          player_id: profile.id,
-          name: profile.display_name || "Player",
-          fixturePoints,
-          total,
-        };
-      }).sort(
+      const players = [...playerMap.values()].sort(
         (a, b) => b.total - a.total || a.name.localeCompare(b.name)
       );
 
@@ -208,8 +138,14 @@ export default function CompetitionPage() {
         [roundId]: {
           fixtures,
           players: rankedPlayers,
-          completedCount: completedFixtures.length,
-          updatedAt: new Date().toISOString(),
+          completedCount: fixtures.filter(
+            (fixture) =>
+              fixture.result_entered &&
+              fixture.home_score !== null &&
+              fixture.home_score !== undefined &&
+              fixture.away_score !== null &&
+              fixture.away_score !== undefined
+          ).length,
         },
       }));
     } catch (error) {
@@ -1691,22 +1627,29 @@ export default function CompetitionPage() {
                                             );
                                           })}
                                         </div>
-                                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                                          {live.players.map((player) => (
-                                            <div key={player.player_id} style={{ display: "grid", gridTemplateColumns: "28px minmax(70px, 1fr) repeat(7, minmax(22px, 0.55fr)) 42px", alignItems: "center", gap: "3px", padding: "8px 5px", borderRadius: "8px", background: player.position === 1 ? "rgba(245,200,66,0.12)" : "rgba(255,255,255,0.035)", border: player.position === 1 ? "1px solid rgba(245,200,66,0.55)" : "1px solid rgba(255,255,255,0.06)" }}>
-                                              <strong style={{ fontSize: "12px", textAlign: "center" }}>{player.position}</strong>
-                                              <strong style={{ fontSize: "12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{player.name}</strong>
-                                              {Array.from({ length: 7 }, (_, index) => (
-                                                <span key={index + 1} style={{ textAlign: "center", fontSize: "11px", color: player.fixturePoints[index + 1] === null || player.fixturePoints[index + 1] === undefined ? "rgba(255,255,255,0.38)" : "inherit" }}>
-                                                  {player.fixturePoints[index + 1] ?? "—"}
-                                                </span>
-                                              ))}
-                                              <strong style={{ textAlign: "right", fontSize: "13px" }}>{player.total}</strong>
-                                            </div>
-                                          ))}
-                                        </div>
-                                        <div className="muted" style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginTop: "6px", padding: "0 4px" }}>
-                                          <span>POS / PLAYER</span><span>M1–M7</span><span>TOTAL</span>
+                                        <div style={{ width: "100%", minWidth: 0 }}>
+                                          <div style={{ display: "grid", gridTemplateColumns: "22px minmax(58px, 1.15fr) repeat(7, minmax(18px, 0.48fr)) 40px", alignItems: "center", gap: "3px", padding: "0 5px 6px", boxSizing: "border-box" }}>
+                                            <span className="muted" style={{ fontSize: "9px", textAlign: "center" }}>#</span>
+                                            <span className="muted" style={{ fontSize: "9px" }}>PLAYER</span>
+                                            {Array.from({ length: 7 }, (_, index) => (
+                                              <span key={index + 1} className="muted" style={{ fontSize: "9px", textAlign: "center" }}>M{index + 1}</span>
+                                            ))}
+                                            <strong style={{ fontSize: "10px", textAlign: "right" }}>TOTAL</strong>
+                                          </div>
+                                          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                                            {live.players.map((player) => (
+                                              <div key={player.player_id} style={{ display: "grid", gridTemplateColumns: "22px minmax(58px, 1.15fr) repeat(7, minmax(18px, 0.48fr)) 40px", alignItems: "center", gap: "3px", padding: "9px 5px", borderRadius: "8px", boxSizing: "border-box", width: "100%", background: player.position === 1 ? "rgba(245,200,66,0.12)" : "rgba(255,255,255,0.035)", border: player.position === 1 ? "1px solid rgba(245,200,66,0.55)" : "1px solid rgba(255,255,255,0.06)" }}>
+                                                <strong style={{ fontSize: "11px", textAlign: "center" }}>{player.position}</strong>
+                                                <strong style={{ fontSize: "11px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{player.name}</strong>
+                                                {Array.from({ length: 7 }, (_, index) => (
+                                                  <span key={index + 1} style={{ textAlign: "center", fontSize: "10px", color: player.fixturePoints[index + 1] === null || player.fixturePoints[index + 1] === undefined ? "rgba(255,255,255,0.38)" : "inherit" }}>
+                                                    {player.fixturePoints[index + 1] ?? "—"}
+                                                  </span>
+                                                ))}
+                                                <strong style={{ textAlign: "right", fontSize: "12px", whiteSpace: "nowrap" }}>{player.total}</strong>
+                                              </div>
+                                            ))}
+                                          </div>
                                         </div>
                                       </>
                                     )}
