@@ -180,7 +180,19 @@ export default function Home() {
 
       const orderedGames = (links || [])
         .map((link) => fixtureMap[link.fixture_id])
-        .filter(Boolean);
+        .filter(Boolean)
+        // Display fixtures in true chronological order:
+        // Friday first, then Saturday, Sunday, Monday, etc.
+        // Sorting the fixture objects keeps predictions attached by fixture ID.
+        .sort((a, b) => {
+          const timeA = new Date(a.kickoff).getTime();
+          const timeB = new Date(b.kickoff).getTime();
+
+          if (!Number.isFinite(timeA)) return 1;
+          if (!Number.isFinite(timeB)) return -1;
+
+          return timeA - timeB;
+        });
 
       if (orderedGames.length === 0) {
         throw new Error(
@@ -1637,3 +1649,4 @@ export default function Home() {
     </main>
   );
 }
+
