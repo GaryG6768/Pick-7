@@ -6,7 +6,8 @@ import { supabase } from "../../lib/supabase";
 export default function PlayersPicksPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing, 
+setRefreshing] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -16,7 +17,8 @@ export default function PlayersPicksPage() {
   async function loadPicks(isRefresh = false) {
     if (isRefresh) {
       setRefreshing(true);
-    } else {
+    } else 
+{
       setLoading(true);
     }
 
@@ -27,7 +29,8 @@ export default function PlayersPicksPage() {
         await supabase().rpc("get_players_picks_client");
 
       if (error) {
-        console.error("Players' Picks error:", error);
+        
+console.error("Players' Picks error:", error);
         setMessage(
           error.message ||
             "Unable to load Players' Picks."
@@ -37,7 +40,8 @@ export default function PlayersPicksPage() {
 
       if (!result?.ok) {
         setMessage(
-          "Submit all 7 picks before viewing the other players' picks."
+          "Submit all 7 picks before viewing the other players' 
+picks."
         );
         return;
       }
@@ -49,7 +53,8 @@ export default function PlayersPicksPage() {
         error?.message ||
           "Unable to load Players' Picks."
       );
-    } finally {
+    } finally 
+{
       setLoading(false);
       setRefreshing(false);
     }
@@ -60,7 +65,8 @@ export default function PlayersPicksPage() {
 
     return new Date(kickoff).toLocaleString(
       "en-GB",
-      {
+      
+{
         weekday: "short",
         day: "numeric",
         month: "short",
@@ -73,7 +79,8 @@ export default function PlayersPicksPage() {
   if (loading) {
     return (
       <main className="page">
-        <section className="card">
+        <section 
+className="card">
           <h1>👥 Players' Picks</h1>
 
           <div
@@ -84,7 +91,8 @@ export default function PlayersPicksPage() {
               background: "#101f2e",
               border: "1px solid #29465e",
               color: "#9db1c2",
-            }}
+            
+}}
           >
             Loading players' picks...
           </div>
@@ -96,7 +104,8 @@ export default function PlayersPicksPage() {
   if (message) {
     return (
       <main className="page">
-        <section className="card">
+        <section 
+className="card">
           <h1>👥 Players' Picks</h1>
 
           <div
@@ -107,7 +116,8 @@ export default function PlayersPicksPage() {
               background: "#162637",
               border: "1px solid #29465e",
               color: "#dce8f2",
-              lineHeight: 1.5,
+              lineHeight: 
+1.5,
             }}
           >
             {message}
@@ -120,13 +130,33 @@ export default function PlayersPicksPage() {
               marginTop: 18,
               width: "100%",
             }}
-          >
+          
+>
             🔄 TRY AGAIN
           </button>
         </section>
       </main>
     );
   }
+
+  // Use actual kickoff timestamps rather than the original fixture selection
+  // order. The pick lookup remains keyed by fixture ID, so predictions 
+stay
+  // attached to the correct match after sorting.
+  const chronologicalFixtures = [...(data.fixtures || [])].sort(
+    (a, b) => {
+      const timeA = a.kickoff ? new Date(a.kickoff).getTime() : Number.NaN;
+      const timeB = b.kickoff ? new Date(b.kickoff).getTime() : 
+Number.NaN;
+
+      if (!Number.isFinite(timeA) && !Number.isFinite(timeB)) return 0;
+      if (!Number.isFinite(timeA)) return 1;
+      if (!Number.isFinite(timeB)) return -1;
+
+      return timeA - 
+timeB;
+    }
+  );
 
   return (
     <main className="page">
@@ -135,7 +165,8 @@ export default function PlayersPicksPage() {
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
+            justifyContent: 
+"space-between",
             alignItems: "center",
             gap: 12,
             flexWrap: "wrap",
@@ -148,7 +179,8 @@ export default function PlayersPicksPage() {
 
             <div
               style={{
-                color: "#91a8bb",
+                color: 
+"#91a8bb",
                 fontSize: 14,
               }}
             >
@@ -159,7 +191,8 @@ export default function PlayersPicksPage() {
           <button
             className="btn"
             onClick={() => loadPicks(true)}
-            disabled={refreshing}
+            
+disabled={refreshing}
             style={{
               minWidth: 90,
               opacity: refreshing ? 0.6 : 1,
@@ -172,7 +205,8 @@ export default function PlayersPicksPage() {
         </div>
 
         <div
-          style={{
+          
+style={{
             marginTop: 18,
             padding: 14,
             borderRadius: 12,
@@ -183,7 +217,8 @@ export default function PlayersPicksPage() {
             fontSize: 14,
             lineHeight: 1.5,
           }}
-        >
+        
+>
           <strong>
             Submitted players only
           </strong>
@@ -206,7 +241,8 @@ export default function PlayersPicksPage() {
             <div
               style={{
                 padding: 18,
-                textAlign: "center",
+                textAlign: 
+"center",
                 borderRadius: 12,
                 background: "#101d2b",
                 border: "1px solid #253d51",
@@ -217,7 +253,8 @@ export default function PlayersPicksPage() {
               picks yet.
             </div>
           ) : (
-            data.players.map((player) => (
+            
+data.players.map((player) => (
               <div
                 key={player.player_id}
                 style={{
@@ -225,7 +262,8 @@ export default function PlayersPicksPage() {
                   overflow: "hidden",
                   border:
                     "1px solid #29465e",
-                  background: "#0d1b29",
+                  background: 
+"#0d1b29",
                 }}
               >
 
@@ -235,7 +273,8 @@ export default function PlayersPicksPage() {
                     background:
                       "linear-gradient(180deg,#17364e,#122b3e)",
                     borderBottom:
-                      "1px solid #29465e",
+                      "1px solid 
+#29465e",
                     fontWeight: 900,
                     fontSize: 16,
                   }}
@@ -245,7 +284,8 @@ export default function PlayersPicksPage() {
                   {player.is_you && (
                     <span
                       style={{
-                        marginLeft: 8,
+                        marginLeft: 
+8,
                         fontSize: 12,
                         color: "#8ee8b1",
                         fontWeight: 800,
@@ -257,18 +297,20 @@ export default function PlayersPicksPage() {
                 </div>
 
                 <div
-                  style={{
+                  
+style={{
                     padding: 12,
                     display: "grid",
                     gap: 8,
                   }}
                 >
-                  {data.fixtures.map(
-                    (fixture) => {
+                  {chronologicalFixtures.map(
+                    (fixture, fixtureIndex) => {
                       const pick =
                         player.picks[
                           fixture.id
-                        ];
+                        
+];
 
                       return (
                         <div
@@ -278,7 +320,8 @@ export default function PlayersPicksPage() {
                             gridTemplateColumns:
                               "30px 1fr auto",
                             gap: 8,
-                            alignItems:
+                            
+alignItems:
                               "center",
                             padding:
                               "10px 8px",
@@ -289,17 +332,19 @@ export default function PlayersPicksPage() {
                         >
 
                           <div
-                            style={{
+                            
+style={{
                               color: "#7f9ab0",
                               fontWeight: 800,
                               fontSize: 13,
                             }}
                           >
-                            {fixture.fixture_number}
+                            {fixtureIndex + 1}
                           </div>
 
                           <div>
-                            <div
+                            
+<div
                               style={{
                                 fontWeight: 700,
                                 fontSize: 14,
@@ -310,7 +355,8 @@ export default function PlayersPicksPage() {
 
                             <div
                               style={{
-                                fontWeight: 700,
+                                
+fontWeight: 700,
                                 fontSize: 14,
                               }}
                             >
@@ -320,7 +366,8 @@ export default function PlayersPicksPage() {
                             <div
                               style={{
                                 marginTop: 3,
-                                color: "#718da3",
+                                color: 
+"#718da3",
                                 fontSize: 11,
                               }}
                             >
@@ -331,7 +378,8 @@ export default function PlayersPicksPage() {
                           </div>
 
                           <div
-                            style={{
+                            
+style={{
                               minWidth: 52,
                               textAlign: "center",
                               fontSize: 20,
@@ -340,7 +388,8 @@ export default function PlayersPicksPage() {
                             }}
                           >
                             {pick ? (
-                              <>
+                              
+<>
                                 {pick.home}
 
                                 <span
@@ -350,7 +399,8 @@ export default function PlayersPicksPage() {
                                     margin:
                                       "0 4px",
                                   }}
-                                >
+                                
+>
                                   -
                                 </span>
 
@@ -363,7 +413,8 @@ export default function PlayersPicksPage() {
 
                         </div>
                       );
-                    }
+                    
+}
                   )}
                 </div>
               </div>
